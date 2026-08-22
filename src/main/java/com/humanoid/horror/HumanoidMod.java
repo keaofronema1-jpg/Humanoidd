@@ -9,16 +9,11 @@ import net.minecraft.world.entity.monster.Monster;
 
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod("humanoid")
-@Mod.EventBusSubscriber(
-        modid = HumanoidMod.MOD_ID,
-        bus = Mod.EventBusSubscriber.Bus.MOD
-)
 public class HumanoidMod {
 
     public static final String MOD_ID = "humanoid";
@@ -28,50 +23,43 @@ public class HumanoidMod {
 
     public HumanoidMod() {
 
-        IEventBus modEventBus =
-                FMLJavaModLoadingContext.get().getModEventBus();
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // TÜM entity kayıtları artık sadece ModEntities üzerinden yapılır.
+        // Entity kayıtları
         ModEntities.ENTITIES.register(modEventBus);
 
-        // Network kayıtları
+        // Event listener'ları manuel bağlayarak çift tetiklenmeyi önlüyoruz
         modEventBus.addListener(this::setup);
+        modEventBus.addListener(this::onAttributeCreate);
     }
 
     private void setup(final FMLCommonSetupEvent event) {
-
         event.enqueueWork(() -> {
             ModMessages.register();
         });
     }
 
-    /**
-     * Entity attribute kayıtları.
-     *
-     * Humanoid ve Creature3 artık HumanoidMod içinde
-     * tekrar oluşturulmuyor.
-     *
-     * Registry kaynakları doğrudan ModEntities'den alınıyor.
-     */
-    @SubscribeEvent
-    public static void onAttributeCreate(
-            EntityAttributeCreationEvent event) {
+    private void onAttributeCreate(EntityAttributeCreationEvent event) {
 
         // HUMANOID
-        event.put(
-                ModEntities.HUMANOID.get(),
-                Monster.createMonsterAttributes()
-                        .add(Attributes.MAX_HEALTH, 40.0D)
-                        .add(Attributes.MOVEMENT_SPEED, 0.3D)
-                        .add(Attributes.ATTACK_DAMAGE, 6.0D)
-                        .add(Attributes.FOLLOW_RANGE, 32.0D)
-                        .build()
-        );
+        if (ModEntities.HUMANOID.exists()) {
+            event.put(
+                    ModEntities.HUMANOID.get(),
+                    Monster.createMonsterAttributes()
+                            .add(Attributes.MAX_HEALTH, 40.0D)
+                            .add(Attributes.MOVEMENT_SPEED, 0.3D)
+                            .add(Attributes.ATTACK_DAMAGE, 6.0D)
+                            .add(Attributes.FOLLOW_RANGE, 32.0D)
+                            .build()
+            );
+        }
 
         // CREATURE3
-        event.put(
-                ModEntities.CREATURE3.get(),
-                Creature3.createAttributes().build()
-        );
+        if (ModEntities.CREATURE3.exists()) {
+            event.put(
+                    ModEntities.CREATURE3.get(),
+                    Creature3.createAttributes().build()
+            );
+        }
     }
 }
