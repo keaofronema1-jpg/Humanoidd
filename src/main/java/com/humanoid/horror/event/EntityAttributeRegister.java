@@ -4,7 +4,7 @@ import com.humanoid.horror.entity.Creature1;
 import com.humanoid.horror.entity.Creature2;
 import com.humanoid.horror.entity.Creature3;
 import com.humanoid.horror.entity.Humanoid;
-import com.humanoid.horror.registry.ModEntities;
+import com.humanoid.horror.entity.ModEntities;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
