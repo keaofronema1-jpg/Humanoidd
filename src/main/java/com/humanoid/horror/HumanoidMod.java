@@ -2,7 +2,7 @@ package com.humanoid.horror;
 
 import com.humanoid.horror.entity.Creature3;
 import com.humanoid.horror.network.ModMessages;
-import com.humanoid.horror.registry.ModEntities;
+import com.humanoid.horror.entity.ModEntities;
 
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Monster;
