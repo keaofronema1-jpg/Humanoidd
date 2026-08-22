@@ -1,6 +1,6 @@
 package com.humanoid.horror.android;
 
-import com.humanoid.horror.entity.ModEntities:
+import com.humanoid.horror.entity.ModEntities;
 import net.minecraft.world.level.block.GlassPaneBlock;
 
 public class AndroidHandler {
