@@ -1,63 +1,39 @@
-.class public Lcom/humanoid/horror/client/HorrorClientManager;
-.super Ljava/lang/Object;
+package com.humanoid.horror.client;
 
-# Sistemin aktif olup olmadığını tutan sinsi anahtarımız
-.field public static isHorrorActive:Z
+import com.mojang.blaze3d.systems.RenderSystem;
 
-.method public static constructor <clinit>()V
-    .registers 1
-    const/4 v0, 0x0
-    sput-boolean v0, Lcom/humanoid/horror/client/HorrorClientManager;->isHorrorActive:Z
-    return-void
-.end method
+public class HorrorClientManager {
 
-.method public constructor <init>()V
-    .registers 1
-    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
-    return-void
-.end method
+    // Korku sisteminin aktif olup olmadığını tutar
+    public static boolean isHorrorActive = false;
 
-# --- TETİKLENMEYİ BEKLEYEN ANA METOT ---
-.method public static activateClientHorror()V
-    .registers 1
-    
-    const/4 v0, 0x1
-    sput-boolean v0, Lcom/humanoid/horror/client/HorrorClientManager;->isHorrorActive:Z
+    public HorrorClientManager() {
+        super();
+    }
 
-    return-void
-.end method
+    // --- /start VERİLDİĞİNDE ÇAĞRILAN ANA METOT ---
+    public static void activateClientHorror() {
+        isHorrorActive = true;
+    }
 
-# --- SİS MOTORU KANCASI (FogRenderer İçin) ---
-.method public static renderHorrorFog()V
-    .registers 2
-    
-    sget-boolean v0, Lcom/humanoid/horror/client/HorrorClientManager;->isHorrorActive:Z
-    if-nez v0, :out
+    // --- SİS MOTORU ---
+    // Korku sistemi aktifse sis uygulanır.
+    public static void renderHorrorFog() {
 
-    # Fog Start: Sisin tatlı tatlı başladığı yer (Yaklaşık 3-4 blok sonrası)
-    const/high16 v0, 0x40800000 # Float: 4.0F
-    invoke-static {v0}, Lcom/mojang/blaze3d/systems/RenderSystem;->setShaderFogStart(F)V
+        if (!isHorrorActive) {
+            return;
+        }
 
-    # Fog End: 10 blok sonrasını hafifçe seçebilsinler diye sınırı 15.0F yaptık kanka!
-    const/high16 v0, 0x41700000 # Float: 15.0F
-    invoke-static {v0}, Lcom/mojang/blaze3d/systems/RenderSystem;->setShaderFogEnd(F)V
+        // Sis 4 bloktan itibaren başlar
+        RenderSystem.setShaderFogStart(4.0F);
 
-:out
-    return-void
-.end method
+        // Sis 15 blokta sona ulaşır
+        RenderSystem.setShaderFogEnd(15.0F);
+    }
 
-# --- İSİM ETİKETİ GİZLEME KANCASI (PlayerRenderer İçin) ---
-.method public static shouldShowNames()Z
-    .registers 1
-    
-    sget-boolean v0, Lcom/humanoid/horror/client/HorrorClientManager;->isHorrorActive:Z
-    
-    if-eqz v0, :hide
-
-    const/4 v0, 0x1
-    return v0
-
-:hide
-    const/4 v0, 0x0 # İsimleri kapat!
-    return v0
-.end method
+    // --- İSİM ETİKETİ KONTROLÜ ---
+    // İsimler hiçbir zaman gösterilmez.
+    public static boolean shouldShowNames() {
+        return false;
+    }
+}
