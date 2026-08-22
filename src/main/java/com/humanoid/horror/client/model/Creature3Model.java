@@ -1,23 +1,192 @@
 package com.humanoid.horror.client.model;
 
-import com.humanoid.horror.client.model.Creature3Model;
-import com.humanoid.horror.client.renderer.Creature3Renderer;
-import com.humanoid.horror.registry.ModEntities; // Paketi dilediğin gibi registry olarak güncelledik!
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import com.humanoid.horror.entity.Creature3;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
+import net.minecraft.client.model.geom.PartDefinition;
+import net.minecraft.client.model.geom.MeshDefinition;
+import net.minecraft.client.model.geom.LayerDefinition;
+import net.minecraft.client.model.geom.builders.CubeListBuilder;
+import net.minecraft.client.model.geom.builders.CubeDeformation;
+import net.minecraft.resources.ResourceLocation;
 
-@Mod.EventBusSubscriber(modid = "humanoid", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-public class Creature3Model {
+public class Creature3Model<T extends Creature3> extends EntityModel<T> {
 
-    @SubscribeEvent
-    public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
-        event.registerLayerDefinition(Creature3Model.LAYER_LOCATION, Creature3Model::createBodyLayer);
+    public static final ModelLayerLocation LAYER_LOCATION =
+            new ModelLayerLocation(
+                    new ResourceLocation("humanoid", "creature3"),
+                    "main"
+            );
+
+    private final ModelPart root;
+    private final ModelPart body;
+    private final ModelPart head;
+    private final ModelPart leftArm;
+    private final ModelPart rightArm;
+    private final ModelPart leftLeg;
+    private final ModelPart rightLeg;
+
+    public Creature3Model(ModelPart root) {
+        this.root = root;
+
+        this.body = root.getChild("body");
+        this.head = root.getChild("head");
+        this.leftArm = root.getChild("left_arm");
+        this.rightArm = root.getChild("right_arm");
+        this.leftLeg = root.getChild("left_leg");
+        this.rightLeg = root.getChild("right_leg");
     }
 
-    @SubscribeEvent
-    public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(ModEntities.CREATURE3.get(), Creature3Renderer::new);
+    public static LayerDefinition createBodyLayer() {
+        MeshDefinition mesh = new MeshDefinition();
+        PartDefinition root = mesh.getRoot();
+
+        root.addOrReplaceChild(
+                "body",
+                CubeListBuilder.create()
+                        .texOffs(16, 16)
+                        .addBox(
+                                -4.0F,
+                                0.0F,
+                                -2.0F,
+                                8.0F,
+                                12.0F,
+                                4.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.ZERO
+        );
+
+        root.addOrReplaceChild(
+                "head",
+                CubeListBuilder.create()
+                        .texOffs(0, 0)
+                        .addBox(
+                                -4.0F,
+                                -8.0F,
+                                -4.0F,
+                                8.0F,
+                                8.0F,
+                                8.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.offset(0.0F, 0.0F, 0.0F)
+        );
+
+        root.addOrReplaceChild(
+                "left_arm",
+                CubeListBuilder.create()
+                        .texOffs(40, 16)
+                        .addBox(
+                                -1.0F,
+                                -1.0F,
+                                -2.0F,
+                                4.0F,
+                                12.0F,
+                                4.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.offset(5.0F, 1.0F, 0.0F)
+        );
+
+        root.addOrReplaceChild(
+                "right_arm",
+                CubeListBuilder.create()
+                        .texOffs(40, 16)
+                        .mirror()
+                        .addBox(
+                                -3.0F,
+                                -1.0F,
+                                -2.0F,
+                                4.0F,
+                                12.0F,
+                                4.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.offset(-5.0F, 1.0F, 0.0F)
+        );
+
+        root.addOrReplaceChild(
+                "left_leg",
+                CubeListBuilder.create()
+                        .texOffs(0, 16)
+                        .addBox(
+                                -2.0F,
+                                0.0F,
+                                -2.0F,
+                                4.0F,
+                                12.0F,
+                                4.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.offset(2.0F, 12.0F, 0.0F)
+        );
+
+        root.addOrReplaceChild(
+                "right_leg",
+                CubeListBuilder.create()
+                        .texOffs(0, 16)
+                        .mirror()
+                        .addBox(
+                                -2.0F,
+                                0.0F,
+                                -2.0F,
+                                4.0F,
+                                12.0F,
+                                4.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.offset(-2.0F, 12.0F, 0.0F)
+        );
+
+        return LayerDefinition.create(mesh, 64, 64);
+    }
+
+    @Override
+    public void setupAnim(
+            T entity,
+            float limbSwing,
+            float limbSwingAmount,
+            float ageInTicks,
+            float netHeadYaw,
+            float headPitch
+    ) {
+        head.yRot = netHeadYaw * ((float) Math.PI / 180F);
+        head.xRot = headPitch * ((float) Math.PI / 180F);
+
+        float swing = (float) Math.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;
+
+        leftArm.xRot = swing;
+        rightArm.xRot = -swing;
+
+        leftLeg.xRot = -swing;
+        rightLeg.xRot = swing;
+    }
+
+    @Override
+    public void renderToBuffer(
+            PoseStack poseStack,
+            VertexConsumer vertexConsumer,
+            int packedLight,
+            int packedOverlay,
+            float red,
+            float green,
+            float blue,
+            float alpha
+    ) {
+        root.render(
+                poseStack,
+                vertexConsumer,
+                packedLight,
+                packedOverlay,
+                red,
+                green,
+                blue,
+                alpha
+        );
     }
 }
