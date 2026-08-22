@@ -1,7 +1,5 @@
 package com.humanoid.horror.android;
 
-import com.humanoid.horror.entity.ModEntities;
-
 public class AndroidHandler {
 
     public static boolean isMobileActivated = false;
@@ -11,8 +9,16 @@ public class AndroidHandler {
     }
 
     /**
-     * Bilerek boş bırakıldı.
-     * Çağrılsa bile hiçbir işlem yapmaz.
+     * Android tarafında mobil kilit başlatma noktası.
+     * Şimdilik bilerek hiçbir işlem yapmaz.
+     */
+    public static void initMobileLock() {
+        // No-op
+    }
+
+    /**
+     * Android korku sistemi başlatma noktası.
+     * Şimdilik bilerek hiçbir işlem yapmaz.
      */
     public static void startMobileHorrorSystem() {
         // No-op
