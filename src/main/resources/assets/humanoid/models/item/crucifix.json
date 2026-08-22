@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "alpha_humanoid_horror_311f4e29:item/crucifix"
+  }
+}

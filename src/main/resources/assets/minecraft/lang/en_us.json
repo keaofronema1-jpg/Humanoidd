@@ -1,0 +1,16 @@
+{
+  "selectWorld.gameMode.spectator.info": ":)",
+  "selectWorld.gameMode.spectator.line1": ":)",
+  "selectWorld.gameMode.spectator.line2": "",
+  "selectWorld.gameMode.survival": "GO TO §kForce_Activate-Humanoid",
+  "selectWorld.gameMode.survival.info": "Dont be brave",
+  "selectWorld.gameMode.survival.line1": "Force_Humanoidspawned.jar-activated",
+  "selectWorld.gameMode.survival.line2": "Some candy",
+    "selectWorld.gameMode.survival.line3": "HIDE",
+  "subtitles.entity.sheep.death": "BEHINDYOU",
+  "title.singleplayer": "[§k§lHAHAHAH]",
+  "soundCategory.master": "Force_BurnHouse-On"
+  "title.multiplayer": "[§k§lHAHAHAH]
+  "title.options": "[§k§lHAHAHAH]"
+
+}

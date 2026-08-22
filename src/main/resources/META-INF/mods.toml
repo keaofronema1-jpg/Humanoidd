@@ -1,0 +1,24 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="humanoid"
+version="3.0.0"
+displayName="Humanoid Mod"
+logoFile="icon.png"
+description="YOU ARE NOT SAFE ANYMORE"
+
+[[dependencies.humanoid]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.humanoid]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="BOTH"
