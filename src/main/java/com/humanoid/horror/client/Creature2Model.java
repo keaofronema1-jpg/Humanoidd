@@ -22,11 +22,8 @@ public class Creature2Model<T extends Creature2>
 
     public static LayerDefinition createBodyLayer() {
 
-        MeshDefinition meshdefinition =
-                new MeshDefinition();
-
-        PartDefinition partdefinition =
-                meshdefinition.getRoot();
+        MeshDefinition meshdefinition = new MeshDefinition();
+        PartDefinition partdefinition = meshdefinition.getRoot();
 
         // =====================================================
         // KAFA
@@ -34,7 +31,6 @@ public class Creature2Model<T extends Creature2>
 
         partdefinition.addOrReplaceChild(
                 "head",
-
                 CubeListBuilder.create()
                         .texOffs(0, 0)
                         .addBox(
@@ -45,7 +41,6 @@ public class Creature2Model<T extends Creature2>
                                 8.0F,
                                 8.0F
                         ),
-
                 PartPose.offset(
                         0.0F,
                         0.0F,
@@ -59,7 +54,6 @@ public class Creature2Model<T extends Creature2>
 
         partdefinition.addOrReplaceChild(
                 "body",
-
                 CubeListBuilder.create()
                         .texOffs(16, 16)
                         .addBox(
@@ -70,7 +64,6 @@ public class Creature2Model<T extends Creature2>
                                 12.0F,
                                 4.0F
                         ),
-
                 PartPose.ZERO
         );
 
@@ -97,18 +90,17 @@ public class Creature2Model<T extends Creature2>
 
         if (entity.isHeadSpinning()) {
 
-            // Sürekli 360 derece kafa dönüşü
+            // Sürekli kafa dönüşü
             this.head.yRot =
                     (float) Math.toRadians(
                             entity.spinningHeadYaw
                     );
 
-            // Normal kafa eğimini temizle
             this.head.xRot = 0.0F;
 
         } else {
 
-            // Normal Minecraft kafa hareketi
+            // Normal kafa hareketi
             this.head.yRot =
                     netHeadYaw *
                     ((float) Math.PI / 180F);
