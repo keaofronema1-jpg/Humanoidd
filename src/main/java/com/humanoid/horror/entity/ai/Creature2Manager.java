@@ -1,7 +1,7 @@
 package com.humanoid.horror.entity.ai;
 
 import com.humanoid.horror.entity.Creature2;
-import com.humanoid.horror.registry.ModEntities;
+import com.humanoid.horror.entity.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
