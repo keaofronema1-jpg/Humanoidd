@@ -1,7 +1,7 @@
 package com.humanoid.horror.system;
 
 import com.humanoid.horror.entity.Creature3;
-import com.humanoid.horror.registry.ModEntities;
+import com.humanoid.horror.entity.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
