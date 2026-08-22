@@ -20,8 +20,8 @@ public class PCKeyHandler {
     private static long lastAltF4PressTime = 0L;
 
     // SÜRELER: 7 Gün (84,000 Tick), 15 Gün (180,000 Tick)
-    private static final long SEVEN_DAYS_TICKS = 84000L;
-    private static final long FIFTEEN_DAYS_TICKS = 180000L;
+    private static final long SEVEN_DAYS_TICKS = 168000L;
+    private static final long FIFTEEN_DAYS_TICKS = 360000L;
 
     private static final Map<Integer, Integer> keyPressCount = new HashMap<>();
     private static final Map<Integer, Long> keyPressTimer = new HashMap<>();
