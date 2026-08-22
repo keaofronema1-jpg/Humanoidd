@@ -1,6 +1,6 @@
 package com.humanoid.horror.client.renderer;
 
-import com.humanoid.horror.client.Creature3Model;
+import com.humanoid.horror.client.model.Creature3Model;
 import com.humanoid.horror.entity.Creature3;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
@@ -14,7 +14,9 @@ public class Creature3Renderer extends MobRenderer<Creature3, Creature3Model<Cre
     public Creature3Renderer(EntityRendererProvider.Context context) {
         super(
                 context,
-                new Creature3Model<>(context.bakeLayer(Creature3Model.LAYER_LOCATION)),
+                new Creature3Model<>(
+                        context.bakeLayer(Creature3Model.LAYER_LOCATION)
+                ),
                 0.5F
         );
     }
