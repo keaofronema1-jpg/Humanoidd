@@ -13,49 +13,90 @@ import net.minecraft.world.level.Level;
 
 public class Creature2 extends PathfinderMob {
 
-    private static final EntityDataAccessor<Boolean> HEAD_SPINNING = SynchedEntityData.defineId(Creature2.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> HEAD_SPINNING =
+            SynchedEntityData.defineId(
+                    Creature2.class,
+                    EntityDataSerializers.BOOLEAN
+            );
+
     public float spinningHeadYaw = 0.0F;
 
-    public Creature2(EntityType<? extends PathfinderMob> type, Level level) {
+    public Creature2(
+            EntityType<? extends PathfinderMob> type,
+            Level level
+    ) {
         super(type, level);
-        this.setInvulnerable(true); // Oyuncu vuramaz ve hasar veremez
+
+        // Oyuncu tarafından hasar alınmasını engelle
+        this.setInvulnerable(true);
     }
 
     @Override
     protected void defineSynchedData() {
-        // 1.20.1 Forge uyumu için super çağrısı kaldırıldı
-        this.entityData.define(HEAD_SPINNING, false);
+        super.defineSynchedData();
+
+        this.entityData.define(
+                HEAD_SPINNING,
+                false
+        );
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 200.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.0D); // Tamamen sabittir, yürümez
+                .add(
+                        Attributes.MAX_HEALTH,
+                        200.0D
+                )
+                .add(
+                        Attributes.MOVEMENT_SPEED,
+                        0.0D
+                );
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        // 360 Derece Kafa Dönme Animasyon Mantığı
+        // =========================================
+        // KAFA DÖNME ANİMASYONU
+        // =========================================
+
         if (this.isHeadSpinning()) {
-            this.spinningHeadYaw += 25.0F;
-            if (this.spinningHeadYaw >= 360.0F) {
-                this.spinningHeadYaw -= 360.0F;
+
+            spinningHeadYaw += 25.0F;
+
+            if (spinningHeadYaw >= 360.0F) {
+                spinningHeadYaw -= 360.0F;
             }
         }
     }
 
+    // =============================================
+    // HASAR ALMASINI ENGELLE
+    // =============================================
+
     @Override
-    public boolean hurt(DamageSource source, float amount) {
-        return false; // Hiçbir şekilde hasar almaz
+    public boolean hurt(
+            DamageSource source,
+            float amount
+    ) {
+        return false;
     }
 
+    // =============================================
+    // KAFA DÖNME DURUMU
+    // =============================================
+
     public void setHeadSpinning(boolean spinning) {
-        this.entityData.set(HEAD_SPINNING, spinning);
+        this.entityData.set(
+                HEAD_SPINNING,
+                spinning
+        );
     }
 
     public boolean isHeadSpinning() {
-        return this.entityData.get(HEAD_SPINNING);
+        return this.entityData.get(
+                HEAD_SPINNING
+        );
     }
 }
