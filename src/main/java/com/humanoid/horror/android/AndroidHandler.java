@@ -5,7 +5,8 @@ public class AndroidHandler {
     public static boolean isMobileActivated = false;
 
     public static void initMobileLock() {
-        // Şimdilik Android tarafında işlem yok.
+        // Şimdilik boş.
+        // Check.java bu metodu çağırabilsin diye mevcut.
     }
 
     public static void startMobileHorrorSystem() {
