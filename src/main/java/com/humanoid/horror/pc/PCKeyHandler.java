@@ -4,7 +4,7 @@ import com.humanoid.horror.system.HorrorWorldData;
 import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.platform.Window;
 import org.lwjgl.glfw.GLFW;
-import com.humanoid.horror.core.ModManager;
+//import com.humanoid.horror.core.ModManager;
 import com.humanoid.horror.core.JumpscareManager;
 
 import java.util.HashMap;
