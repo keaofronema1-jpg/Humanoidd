@@ -9,7 +9,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = "humanoid", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-public class ClientRegister {
+public class Creature3Model {
 
     @SubscribeEvent
     public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
