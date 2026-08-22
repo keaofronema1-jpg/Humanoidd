@@ -7,7 +7,7 @@ import com.humanoid.horror.client.Creature1Renderer;
 import com.humanoid.horror.client.Creature2Model;
 import com.humanoid.horror.client.Creature2Renderer;
 
-import com.humanoid.horror.registry.ModEntities;
+import com.humanoid.horror.entity.ModEntities;
 
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
