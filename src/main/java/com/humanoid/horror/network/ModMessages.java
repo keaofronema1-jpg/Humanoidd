@@ -8,7 +8,9 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public class ModMessages {
+
     private static SimpleChannel INSTANCE;
+
     private static int packetId = 0;
 
     private static int id() {
@@ -16,6 +18,7 @@ public class ModMessages {
     }
 
     public static void register() {
+
         SimpleChannel net = NetworkRegistry.ChannelBuilder
                 .named(new ResourceLocation("humanoid", "messages"))
                 .networkProtocolVersion(() -> "1.0")
@@ -25,18 +28,31 @@ public class ModMessages {
 
         INSTANCE = net;
 
-        net.messageBuilder(PacketJumpscare.class, id(), NetworkDirection.PLAY_TO_CLIENT)
-                .decoder(PacketJumpscare::new)
-                .encoder(PacketJumpscare::toBytes)
-                .consumerMainThread(PacketJumpscare::handle)
-                .add();
+        net.messageBuilder(
+                JumpscarePacket.class,
+                id(),
+                NetworkDirection.PLAY_TO_CLIENT
+        )
+        .decoder(JumpscarePacket::new)
+        .encoder(JumpscarePacket::toBytes)
+        .consumerMainThread(JumpscarePacket::handle)
+        .add();
     }
 
-    public static <MSG> void sendToPlayer(MSG message, ServerPlayer player) {
-        INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), message);
+    public static <MSG> void sendToPlayer(
+            MSG message,
+            ServerPlayer player
+    ) {
+        INSTANCE.send(
+                PacketDistributor.PLAYER.with(() -> player),
+                message
+        );
     }
 
     public static <MSG> void sendToAllPlayers(MSG message) {
-        INSTANCE.send(PacketDistributor.ALL.noArg(), message);
+        INSTANCE.send(
+                PacketDistributor.ALL.noArg(),
+                message
+        );
     }
 }
