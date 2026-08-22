@@ -28,7 +28,7 @@ public class HumanoidMod {
         // Entity kayıtları
         ModEntities.ENTITIES.register(modEventBus);
 
-        // Event listener'ları manuel bağlayarak çift tetiklenmeyi önlüyoruz
+        // Event listener'ları manuel ekliyoruz
         modEventBus.addListener(this::setup);
         modEventBus.addListener(this::onAttributeCreate);
     }
@@ -42,7 +42,7 @@ public class HumanoidMod {
     private void onAttributeCreate(EntityAttributeCreationEvent event) {
 
         // HUMANOID
-        if (ModEntities.HUMANOID.exists()) {
+        if (ModEntities.HUMANOID.isPresent()) {
             event.put(
                     ModEntities.HUMANOID.get(),
                     Monster.createMonsterAttributes()
@@ -55,7 +55,7 @@ public class HumanoidMod {
         }
 
         // CREATURE3
-        if (ModEntities.CREATURE3.exists()) {
+        if (ModEntities.CREATURE3.isPresent()) {
             event.put(
                     ModEntities.CREATURE3.get(),
                     Creature3.createAttributes().build()
