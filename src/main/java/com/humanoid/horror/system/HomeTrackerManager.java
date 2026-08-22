@@ -36,7 +36,11 @@ public class HomeTrackerManager {
             }
         }
     }
-
+private static boolean isAnyGlass(BlockState state, Block block) {
+    return block instanceof AbstractGlassBlock
+            || block instanceof IronBarsBlock
+            || state.is(Blocks.GLASS);
+}
     private static void calculateHomeScore(ServerPlayer player, ServerLevel level) {
         if (player == null || level == null) return;
 
