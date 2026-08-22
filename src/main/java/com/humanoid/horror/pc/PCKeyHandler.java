@@ -1,5 +1,6 @@
 package com.humanoid.horror.pc;
 
+import com.humanoid.horror.system.HorrorWorldData;
 import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.platform.Window;
 import org.lwjgl.glfw.GLFW;
