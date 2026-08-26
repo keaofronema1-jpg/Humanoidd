@@ -1,6 +1,7 @@
 package com.humanoid.horror.event;
 
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ScreenEvent;
@@ -15,12 +16,11 @@ public class TitleScreenModifier {
 
     @SubscribeEvent
     public static void onScreenInit(ScreenEvent.Init.Post event) {
-        if (event.getScreen() instanceof TitleScreen) {
-            // Silinecek butonları toplamak için geçici bir liste
-            List<Button> toRemove = new ArrayList<>();
+        if (event.getScreen() instanceof TitleScreen screen) {
+            List<GuiEventListener> toRemove = new ArrayList<>();
 
             // Ekrandaki tüm bileşenleri tarıyoruz
-            for (var listener : event.getScreen().children()) {
+            for (GuiEventListener listener : screen.children()) {
                 if (listener instanceof Button button) {
                     String message = button.getMessage().getString();
                     
@@ -37,9 +37,10 @@ public class TitleScreenModifier {
                 }
             }
 
-            // Toplanan istenmeyen butonları Forge'un kendi metoduyla ekrandan tamamen siliyoruz
-            for (Button button : toRemove) {
-                event.removeWidget(button);
+            // İstenmeyen butonları doğrudan ekranın (screen) çocuk listesinden siliyoruz
+            for (GuiEventListener listener : toRemove) {
+                screen.children().remove(listener);
+                screen.renderables.remove(listener);
             }
         }
     }
