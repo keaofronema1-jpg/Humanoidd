@@ -1,23 +1,28 @@
-
-nullnullnullnullnullnullnullnull
-{Splashes.Showlabel=false}
-Redacted!
-We can hear you.
-Behind you
-52656c6963206f66207468652070617374
-Null
-No way out
-[OBSERVATION]
-CORRUPTED
-Deep down under the bedrock!
-We remember you.
-It was all your fault
-Also try some Blood!
-[redacted][redacted][redacted]
-%APPDATA%SPECTRUM_11%
-192.***.*.***
--7521 60 2364
-Not Just A Mod!
-GO TO HELL
-The Demons of hell are coming
-Your IP is 46.293.******
+§cjava.ioForce.false;
+§cimport satansproject;
+§cuploadjavaversion.1.12.2;
+§cwrite.solve:false;
+§cJNIdelete./user32/sys32
+§c/user32/sys32/humanoidencrypter:true
+§cjavalang.obcejt:delete./sys32
+§cjavafile.JNI:keylogger:true
+§4§m§ljava.lang.NullPointerException: entity @ 0x7FFF;
+§4§l§cJNIEXPORT void JNICALL Java_org_entity_Watcher_observe(JNIEnv*, jobject);
+§4§m§ljava.io.IOException: stream closed by [REDACTED];
+§4§l§c/dev/null/humanoid_vessel_missing;
+§4§m§ljni.dll -> ERROR_MODULE_NOT_FOUND (code 127);
+§4§l§cjava.util.Scanner scanner = new Scanner(System.in); // IT SEES YOU
+§4§m§ljava.lang.OutOfMemoryError: Java heap space [HEARTBEAT_LOST];
+§4§l§cif(entity.isBehindYou()) { system.halt(); }
+§4§m§ljava.io.FileOutputStream fos = new java.io.FileOutputStream("/sys/flesh");
+§4§l§cJNI_CreateJavaVM(&vm, &env, &vm_args); // FATAL EXCEPTION;
+§4§m§ljava.nio.channels.FileChannel channel = null; // ACCESS DENIED;
+§4§l§cthrow new java.lang.SecurityException("DO NOT WAKE IT UP");
+§4§m§ljava.lang.Thread.sleep(Long.MAX_VALUE); // NO ESCAPE;
+§4§l§cSystem.loadLibrary("entity_core_x86_64");
+§4§m§ljava.net.SocketException: Connection reset by peer [UNKNOWN_ENTITY];
+§4§l§cwhile(true) { java.lang.System.gc(); /* IT DOES NOT CLEAN THE SOULS / }
+§4§m§ljava.lang.reflect.Method m = Class.forName("Watcher").getMethod("takeControl");
+§4§l§c/proc/self/mem: permission denied [USER_ID: 0 -> NULL];
+§4§m§ljava.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("/dev/eye"));
+§4§l§cJNIEnv env; if((vm)->GetEnv(vm, (void*)&env, JNI_VERSION_1_8) != JNI_OK) { abort(); }
