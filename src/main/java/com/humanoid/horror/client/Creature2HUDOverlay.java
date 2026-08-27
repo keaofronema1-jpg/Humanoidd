@@ -11,7 +11,10 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT)
+@Mod.EventBusSubscriber(
+        modid = HumanoidMod.MOD_ID,
+        value = Dist.CLIENT
+)
 public class Creature2HUDOverlay {
 
     public static boolean persistent = false;
