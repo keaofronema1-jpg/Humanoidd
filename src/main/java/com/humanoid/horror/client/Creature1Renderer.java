@@ -6,8 +6,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
 import net.minecraft.resources.ResourceLocation;
 
-public class Creature1Renderer
-        extends MobRenderer<Creature1, Creature1Model<Creature1>> {
+public class Creature1Renderer extends MobRenderer<Creature1, Creature1Model<Creature1>> {
 
     // =========================================================
     // MODEL LAYER
@@ -34,14 +33,16 @@ public class Creature1Renderer
     // RENDERER
     // =========================================================
 
-    public Creature1Renderer(
-            EntityRendererProvider.Context context
-    ) {
+    public Creature1Renderer(EntityRendererProvider.Context context) {
+
         super(
                 context,
+
                 new Creature1Model<>(
                         context.bakeLayer(LAYER_LOCATION)
                 ),
+
+                // Entity'nin gövdesinin etrafındaki shadow radius
                 0.5F
         );
     }
@@ -51,9 +52,7 @@ public class Creature1Renderer
     // =========================================================
 
     @Override
-    public ResourceLocation getTextureLocation(
-            Creature1 entity
-    ) {
+    public ResourceLocation getTextureLocation(Creature1 entity) {
         return TEXTURE;
     }
-        }
+}
