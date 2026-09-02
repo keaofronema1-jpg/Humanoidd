@@ -25,7 +25,7 @@ import java.util.Set;
         modid = HumanoidMod.MOD_ID,
         bus = Mod.EventBusSubscriber.Bus.FORGE
 )
-public class HumanoidDİmensionStructures {
+public class HumanoidDimensionStructures {
 
     /*
      * =========================================================
