@@ -15,30 +15,50 @@ public class TPBlock2 extends Block {
     }
 
     @Override
-    public void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
-        super.entityInside(state, level, pos, entity);
+    public void stepOn(
+            Level level,
+            BlockPos pos,
+            BlockState state,
+            Entity entity
+    ) {
 
-        if (!level.isClientSide && entity instanceof ServerPlayer player) {
+        super.stepOn(
+                level,
+                pos,
+                state,
+                entity
+        );
 
-            // Zaten Overworld'deyse ışınlama yapma
-            if (player.level().dimension() == Level.OVERWORLD) {
-                return;
-            }
-
-            ServerLevel overworld = player.server.getLevel(Level.OVERWORLD);
-
-            if (overworld != null) {
-                BlockPos spawnPos = overworld.getSharedSpawnPos();
-
-                player.teleportTo(
-                        overworld,
-                        spawnPos.getX() + 0.5D,
-                        spawnPos.getY() + 1.0D,
-                        spawnPos.getZ() + 0.5D,
-                        player.getYRot(),
-                        player.getXRot()
-                );
-            }
+        if (level.isClientSide) {
+            return;
         }
+
+        if (!(entity instanceof ServerPlayer player)) {
+            return;
+        }
+
+        /*
+         * Oyuncu TPBlock2'ye temas edince
+         * Overworld spawn noktasına gönder.
+         */
+        ServerLevel overworld =
+                player.getServer()
+                        .getLevel(Level.OVERWORLD);
+
+        if (overworld == null) {
+            return;
+        }
+
+        BlockPos spawnPos =
+                overworld.getSharedSpawnPos();
+
+        player.teleportTo(
+                overworld,
+                spawnPos.getX() + 0.5D,
+                spawnPos.getY() + 1.0D,
+                spawnPos.getZ() + 0.5D,
+                player.getYRot(),
+                player.getXRot()
+        );
     }
 }
