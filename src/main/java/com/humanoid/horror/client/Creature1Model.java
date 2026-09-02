@@ -1,7 +1,9 @@
-package com.humanoid.horror.client;
+package com.humanoid.horror.client.model;
 
-import com.humanoid.horror.entity.Creature1;
-import net.minecraft.client.model.HierarchicalModel;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
@@ -9,50 +11,75 @@ import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
-import net.minecraft.util.Mth;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
 
-public class Creature1Model<T extends Creature1> extends HierarchicalModel<T> {
+public class Creature1Model<T extends Entity> extends EntityModel<T> {
+
+    public static final ModelLayerLocation LAYER_LOCATION =
+            new ModelLayerLocation(
+                    new ResourceLocation("humanoid", "creature1"),
+                    "main"
+            );
 
     private final ModelPart root;
-
+    private final ModelPart waist;
     private final ModelPart body;
     private final ModelPart head;
-
+    private final ModelPart hat;
     private final ModelPart rightArm;
     private final ModelPart leftArm;
-
     private final ModelPart rightLeg;
     private final ModelPart leftLeg;
 
     public Creature1Model(ModelPart root) {
-        this.root = root;
-
-        this.body = root.getChild("body");
-        this.head = root.getChild("head");
-
-        this.rightArm = root.getChild("right_arm");
-        this.leftArm = root.getChild("left_arm");
-
-        this.rightLeg = root.getChild("right_leg");
-        this.leftLeg = root.getChild("left_leg");
+        this.root = root.getChild("root");
+        this.waist = this.root.getChild("waist");
+        this.body = this.waist.getChild("body");
+        this.head = this.body.getChild("head");
+        this.hat = this.head.getChild("hat");
+        this.rightArm = this.body.getChild("rightArm");
+        this.leftArm = this.body.getChild("leftArm");
+        this.rightLeg = this.waist.getChild("rightLeg");
+        this.leftLeg = this.waist.getChild("leftLeg");
     }
 
     public static LayerDefinition createBodyLayer() {
 
-        MeshDefinition mesh = new MeshDefinition();
-        PartDefinition root = mesh.getRoot();
+        MeshDefinition meshdefinition = new MeshDefinition();
+        PartDefinition partdefinition = meshdefinition.getRoot();
 
-        /*
-         * ============================================================
-         * HEAD
-         * ============================================================
-         */
+        PartDefinition root = partdefinition.addOrReplaceChild(
+                "root",
+                CubeListBuilder.create(),
+                PartPose.offset(0.0F, 24.0F, 0.0F)
+        );
 
-        PartDefinition head = root.addOrReplaceChild(
-                "head",
+        PartDefinition waist = root.addOrReplaceChild(
+                "waist",
+                CubeListBuilder.create(),
+                PartPose.offset(0.0F, -12.0F, 0.0F)
+        );
 
+        PartDefinition body = waist.addOrReplaceChild(
+                "body",
                 CubeListBuilder.create()
-                        // Ana kafa
+                        .texOffs(16, 16)
+                        .addBox(
+                                -4.0F,
+                                0.0F,
+                                -2.0F,
+                                8.0F,
+                                12.0F,
+                                4.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.offset(0.0F, -12.0F, 0.0F)
+        );
+
+        PartDefinition head = body.addOrReplaceChild(
+                "head",
+                CubeListBuilder.create()
                         .texOffs(0, 0)
                         .addBox(
                                 -4.0F,
@@ -60,10 +87,15 @@ public class Creature1Model<T extends Creature1> extends HierarchicalModel<T> {
                                 -4.0F,
                                 8.0F,
                                 8.0F,
-                                8.0F
-                        )
+                                8.0F,
+                                new CubeDeformation(0.0F)
+                        ),
+                PartPose.offset(0.0F, 0.0F, 0.0F)
+        );
 
-                        // Outer kafa katmanı
+        PartDefinition hat = head.addOrReplaceChild(
+                "hat",
+                CubeListBuilder.create()
                         .texOffs(32, 0)
                         .addBox(
                                 -4.0F,
@@ -74,129 +106,44 @@ public class Creature1Model<T extends Creature1> extends HierarchicalModel<T> {
                                 8.0F,
                                 new CubeDeformation(0.5F)
                         ),
-
-                PartPose.offset(0.0F, -12.0F, 0.0F)
+                PartPose.offset(0.0F, 0.0F, 0.0F)
         );
 
-        /*
-         * ============================================================
-         * BODY
-         * ============================================================
-         */
-
-        root.addOrReplaceChild(
-                "body",
-
+        PartDefinition rightArm = body.addOrReplaceChild(
+                "rightArm",
                 CubeListBuilder.create()
-                        // Ana gövde
-                        .texOffs(16, 16)
-                        .addBox(
-                                -4.0F,
-                                0.0F,
-                                -2.0F,
-                                8.0F,
-                                12.0F,
-                                4.0F
-                        )
-
-                        // Gövde outer katmanı
-                        .texOffs(16, 32)
-                        .addBox(
-                                -4.0F,
-                                0.0F,
-                                -2.0F,
-                                8.0F,
-                                12.0F,
-                                4.0F,
-                                new CubeDeformation(0.5F)
-                        ),
-
-                PartPose.offset(0.0F, -12.0F, 0.0F)
-        );
-
-        /*
-         * ============================================================
-         * RIGHT ARM
-         * ============================================================
-         */
-
-        root.addOrReplaceChild(
-                "right_arm",
-
-                CubeListBuilder.create()
-                        // Ana sağ kol
                         .texOffs(40, 16)
                         .addBox(
                                 -3.0F,
-                                0.0F,
                                 -2.0F,
-                                4.0F,
-                                12.0F,
-                                4.0F
-                        )
-
-                        // Sağ kol outer katmanı
-                        .texOffs(40, 32)
-                        .addBox(
-                                -3.0F,
-                                0.0F,
                                 -2.0F,
                                 4.0F,
                                 12.0F,
                                 4.0F,
-                                new CubeDeformation(0.5F)
+                                new CubeDeformation(0.0F)
                         ),
-
-                PartPose.offset(-5.0F, -12.0F, 0.0F)
+                PartPose.offset(-5.0F, 2.0F, 0.0F)
         );
 
-        /*
-         * ============================================================
-         * LEFT ARM
-         * ============================================================
-         */
-
-        root.addOrReplaceChild(
-                "left_arm",
-
+        PartDefinition leftArm = body.addOrReplaceChild(
+                "leftArm",
                 CubeListBuilder.create()
-                        // Ana sol kol
                         .texOffs(32, 48)
                         .addBox(
                                 -1.0F,
-                                0.0F,
                                 -2.0F,
-                                4.0F,
-                                12.0F,
-                                4.0F
-                        )
-
-                        // Sol kol outer katmanı
-                        .texOffs(48, 48)
-                        .addBox(
-                                -1.0F,
-                                0.0F,
                                 -2.0F,
                                 4.0F,
                                 12.0F,
                                 4.0F,
-                                new CubeDeformation(0.5F)
+                                new CubeDeformation(0.0F)
                         ),
-
-                PartPose.offset(5.0F, -12.0F, 0.0F)
+                PartPose.offset(5.0F, 2.0F, 0.0F)
         );
 
-        /*
-         * ============================================================
-         * RIGHT LEG
-         * ============================================================
-         */
-
-        root.addOrReplaceChild(
-                "right_leg",
-
+        PartDefinition rightLeg = waist.addOrReplaceChild(
+                "rightLeg",
                 CubeListBuilder.create()
-                        // Ana sağ bacak
                         .texOffs(0, 16)
                         .addBox(
                                 -2.0F,
@@ -204,35 +151,15 @@ public class Creature1Model<T extends Creature1> extends HierarchicalModel<T> {
                                 -2.0F,
                                 4.0F,
                                 12.0F,
-                                4.0F
-                        )
-
-                        // Sağ bacak outer katmanı
-                        .texOffs(0, 32)
-                        .addBox(
-                                -2.0F,
-                                0.0F,
-                                -2.0F,
                                 4.0F,
-                                12.0F,
-                                4.0F,
-                                new CubeDeformation(0.5F)
+                                new CubeDeformation(0.0F)
                         ),
-
-                PartPose.offset(-2.0F, 0.0F, 0.0F)
+                PartPose.offset(-1.9F, 0.0F, 0.0F)
         );
 
-        /*
-         * ============================================================
-         * LEFT LEG
-         * ============================================================
-         */
-
-        root.addOrReplaceChild(
-                "left_leg",
-
+        PartDefinition leftLeg = waist.addOrReplaceChild(
+                "leftLeg",
                 CubeListBuilder.create()
-                        // Ana sol bacak
                         .texOffs(16, 48)
                         .addBox(
                                 -2.0F,
@@ -240,76 +167,47 @@ public class Creature1Model<T extends Creature1> extends HierarchicalModel<T> {
                                 -2.0F,
                                 4.0F,
                                 12.0F,
-                                4.0F
-                        )
-
-                        // Sol bacak outer katmanı
-                        .texOffs(0, 48)
-                        .addBox(
-                                -2.0F,
-                                0.0F,
-                                -2.0F,
                                 4.0F,
-                                12.0F,
-                                4.0F,
-                                new CubeDeformation(0.5F)
+                                new CubeDeformation(0.0F)
                         ),
-
-                PartPose.offset(2.0F, 0.0F, 0.0F)
+                PartPose.offset(1.9F, 0.0F, 0.0F)
         );
 
-        return LayerDefinition.create(mesh, 64, 64);
+        return LayerDefinition.create(meshdefinition, 64, 64);
     }
 
     @Override
     public void setupAnim(
-            T entity,
+            Entity entity,
             float limbSwing,
             float limbSwingAmount,
             float ageInTicks,
             float netHeadYaw,
             float headPitch
     ) {
-
-        /*
-         * ============================================================
-         * HEAD ANIMATION
-         * ============================================================
-         */
-
-        this.head.yRot = netHeadYaw * ((float) Math.PI / 180F);
-        this.head.xRot = headPitch * ((float) Math.PI / 180F);
-
-        /*
-         * ============================================================
-         * WALK ANIMATION
-         * ============================================================
-         */
-
-        float speed = 0.9F;
-        float amount = Math.min(limbSwingAmount, 1.0F);
-
-        this.rightLeg.xRot =
-                Mth.cos(limbSwing * speed) * 1.2F * amount;
-
-        this.leftLeg.xRot =
-                Mth.cos(limbSwing * speed + (float) Math.PI)
-                        * 1.2F
-                        * amount;
-
-        this.rightArm.xRot =
-                Mth.cos(limbSwing * speed + (float) Math.PI)
-                        * 1.0F
-                        * amount;
-
-        this.leftArm.xRot =
-                Mth.cos(limbSwing * speed)
-                        * 1.0F
-                        * amount;
+        // Şimdilik animasyon yok.
     }
 
     @Override
-    public ModelPart root() {
-        return this.root;
+    public void renderToBuffer(
+            PoseStack poseStack,
+            VertexConsumer vertexConsumer,
+            int packedLight,
+            int packedOverlay,
+            float red,
+            float green,
+            float blue,
+            float alpha
+    ) {
+        root.render(
+                poseStack,
+                vertexConsumer,
+                packedLight,
+                packedOverlay,
+                red,
+                green,
+                blue,
+                alpha
+        );
     }
 }

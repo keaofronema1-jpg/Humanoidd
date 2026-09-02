@@ -5,21 +5,40 @@
       "humanoid:scare"
     ]
   },
+
   "wep": {
     "category": "player",
     "sounds": [
       "humanoid:wep"
     ]
-  }
-}
+  },
 
-{
   "entity.humanoid.cont": {
     "category": "hostile",
     "subtitle": "subtitles.humanoid.cont",
     "sounds": [
       {
         "name": "humanoid:cont",
+        "stream": true
+      }
+    ]
+  },
+
+  "dimension2music": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "humanoid:dimension2music",
+        "stream": true
+      }
+    ]
+  },
+
+  "dimension2music2": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "humanoid:dimension2music2",
         "stream": true
       }
     ]

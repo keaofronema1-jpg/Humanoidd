@@ -1,25 +1,26 @@
 package com.humanoid.horror.client.renderer;
 
-import com.humanoid.horror.client.model.Creature3Model;
-import com.humanoid.horror.entity.Creature3;
+import com.humanoid.horror.client.model.HumanoidModel;
+import com.humanoid.horror.entity.Humanoid;
+
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
 import net.minecraft.resources.ResourceLocation;
 
-public class Creature3Renderer extends MobRenderer<Creature3, Creature3Model<Creature3>> {
+public class HumanoidRenderer extends MobRenderer<Humanoid, HumanoidModel<Humanoid>> {
 
     private static final ResourceLocation TEXTURE =
             new ResourceLocation(
                     "humanoid",
-                    "textures/entity/creature3.png"
+                    "textures/entity/humanoid.png"
             );
 
-    public Creature3Renderer(EntityRendererProvider.Context context) {
+    public HumanoidRenderer(EntityRendererProvider.Context context) {
         super(
                 context,
-                new Creature3Model<>(
+                new HumanoidModel<>(
                         context.bakeLayer(
-                                Creature3Model.LAYER_LOCATION
+                                HumanoidModel.LAYER_LOCATION
                         )
                 ),
                 0.5F
@@ -27,7 +28,7 @@ public class Creature3Renderer extends MobRenderer<Creature3, Creature3Model<Cre
     }
 
     @Override
-    public ResourceLocation getTextureLocation(Creature3 entity) {
+    public ResourceLocation getTextureLocation(Humanoid entity) {
         return TEXTURE;
     }
 }

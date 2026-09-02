@@ -1,0 +1,143 @@
+name: Sync September 1-2 Changes to Humanoidd
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ============================================================
+      # 1. BOZUK / KAYNAK HUMANOID REPOSUNU TAM GIT GECMISIYLE AL
+      # ============================================================
+      - name: Checkout Humanoid
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ============================================================
+      # 2. HUMANOIDD REPOSUNU CLONE ET
+      # ============================================================
+      - name: Clone Humanoidd
+        env:
+          TOKEN: ${{ secrets.HUMANOIDD_TOKEN }}
+        run: |
+          git clone \
+            "https://x-access-token:${TOKEN}@github.com/${{ github.repository_owner }}/Humanoidd.git" \
+            humanoidd
+
+      # ============================================================
+      # 3. SADECE TURKIYE SAATIYLE
+      #
+      # 1 EYLUL 2026 00:00:00 TRT
+      # ->
+      # 2 EYLUL 2026 23:59:59 TRT
+      #
+      # Turkiye UTC+3 oldugu icin:
+      #
+      # 1 Eylul 00:00 TRT = 31 Agustos 21:00 UTC
+      # 2 Eylul 23:59:59 TRT = 2 Eylul 20:59:59 UTC
+      # ============================================================
+      - name: Find September 1-2 changes
+        run: |
+          git log \
+            --since="2026-08-31 21:00:00" \
+            --until="2026-09-02 20:59:59" \
+            --name-only \
+            --pretty=format: \
+            | sed '/^$/d' \
+            | sort -u > /tmp/changed_files.txt
+
+          echo ""
+          echo "=========================================="
+          echo "TURKIYE SAATIYLE 1-2 EYLUL DEGISIKLIKLERI"
+          echo "=========================================="
+          echo ""
+
+          if [ -s /tmp/changed_files.txt ]; then
+            cat /tmp/changed_files.txt
+          else
+            echo "Bu tarih araliginda degisen dosya bulunamadi."
+          fi
+
+      # ============================================================
+      # 4. SADECE BULUNAN DOSYALARIN EN SON HALINI KOPYALA
+      #
+      # Ayni dosya Git gecmisinde birden fazla kez geciyorsa
+      # sadece kaynak repodaki su anki EN SON HALI alinir.
+      #
+      # Humanoidd'de varsa UZERINE YAZILIR.
+      # ============================================================
+      - name: Sync latest file versions
+        run: |
+          while IFS= read -r FILE; do
+
+            # Guvenlik: bos satirlari atla
+            if [ -z "$FILE" ]; then
+              continue
+            fi
+
+            # Dosya kaynak repoda mevcutsa kopyala
+            if [ -f "$FILE" ]; then
+
+              echo "SYNC: $FILE"
+
+              mkdir -p "humanoidd/$(dirname "$FILE")"
+
+              cp -f "$FILE" "humanoidd/$FILE"
+
+            else
+
+              echo "SKIP: $FILE"
+              echo "Kaynak repoda mevcut degil."
+
+            fi
+
+          done < /tmp/changed_files.txt
+
+      # ============================================================
+      # 5. HUMANOIDD'DE NELER DEGISTI GOSTER
+      # ============================================================
+      - name: Show changes
+        working-directory: humanoidd
+        run: |
+          echo ""
+          echo "=========================================="
+          echo "HUMANOIDD DEGİŞİKLİKLERİ"
+          echo "=========================================="
+          echo ""
+
+          git status --short
+
+          echo ""
+          git diff --stat
+
+      # ============================================================
+      # 6. HUMANOIDD REPOSUNA COMMIT + PUSH
+      # ============================================================
+      - name: Commit and Push
+        working-directory: humanoidd
+        run: |
+
+          git config user.name "Humanoid Sync Bot"
+          git config user.email "humanoid-sync@users.noreply.github.com"
+
+          git add -A
+
+          # Degisiklik yoksa commit yapma
+          if git diff --cached --quiet; then
+            echo "Aktarilacak degisiklik yok."
+            exit 0
+          fi
+
+          git commit -m "Sync September 1-2 Humanoid changes"
+
+          git push origin main
