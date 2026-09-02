@@ -11,7 +11,6 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -139,32 +138,6 @@ public class Dimension2Manager {
                 timers.put(uuid, timer);
             }
         }
-    }
-
-    /*
-     * Dimension2'de mob spawnlarını tamamen engelle.
-     */
-    @SubscribeEvent
-    public static void onMobSpawn(
-            MobSpawnEvent event
-    ) {
-
-        if (!(event.getLevel() instanceof ServerLevel level)) {
-            return;
-        }
-
-        if (!level.dimension()
-                .location()
-                .equals(DIMENSION2)) {
-
-            return;
-        }
-
-        /*
-         * Dimension2'de oluşan bütün MobSpawnEvent'lerini
-         * iptal ediyoruz.
-         */
-        event.setCanceled(true);
     }
 
     private static boolean isInDimension2(
