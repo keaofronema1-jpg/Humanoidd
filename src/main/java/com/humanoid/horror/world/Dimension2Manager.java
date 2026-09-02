@@ -8,9 +8,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -140,11 +143,78 @@ public class Dimension2Manager {
         }
     }
 
+    /*
+     * =========================================================
+     * DIMENSION2 VANILLA MOB ENGELLEME
+     * =========================================================
+     *
+     * MobSpawnEvent kullanılmıyor.
+     *
+     * Çünkü bazı MobSpawnEvent türleri cancel edilemez.
+     *
+     * Bunun yerine vanilla mob spawn olduktan hemen sonra
+     * LivingTickEvent üzerinden kontrol edilip siliniyor.
+     *
+     * Sadece namespace'i "minecraft" olan Mob'lar silinir.
+     *
+     * Örnek:
+     *
+     * minecraft:zombie     -> SİL
+     * minecraft:skeleton    -> SİL
+     * minecraft:creeper     -> SİL
+     * minecraft:spider      -> SİL
+     * minecraft:cow         -> SİL
+     * minecraft:pig         -> SİL
+     *
+     * humanoid:creature1    -> KORU
+     * humanoid:creature2    -> KORU
+     * humanoid:creature3    -> KORU
+     */
+    @SubscribeEvent
+    public static void onLivingTick(
+            LivingEvent.LivingTickEvent event
+    ) {
+
+        if (!(event.getEntity() instanceof Mob mob)) {
+            return;
+        }
+
+        if (!isInDimension2(mob)) {
+            return;
+        }
+
+        ResourceLocation entityId =
+                net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                        .getKey(mob.getType());
+
+        if (entityId == null) {
+            return;
+        }
+
+        /*
+         * Sadece vanilla Minecraft entity'leri.
+         */
+        if ("minecraft".equals(entityId.getNamespace())) {
+
+            mob.discard();
+        }
+    }
+
     private static boolean isInDimension2(
             ServerPlayer player
     ) {
 
         return player.level()
+                .dimension()
+                .location()
+                .equals(DIMENSION2);
+    }
+
+    private static boolean isInDimension2(
+            Mob mob
+    ) {
+
+        return mob.level()
                 .dimension()
                 .location()
                 .equals(DIMENSION2);
