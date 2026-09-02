@@ -6,7 +6,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -29,20 +28,31 @@ public class HumanoidDimensionStructures {
 
     /*
      * =========================================================
-     * YAPILAR
+     * DIMENSION 1
      * =========================================================
      */
 
-    private static final ResourceLocation HUMANOID_SUN =
+    private static final ResourceLocation HUMANOID_DIMENSION =
             new ResourceLocation(
                     HumanoidMod.MOD_ID,
-                    "humanoidsun"
+                    "humanoid_dimension"
             );
 
-    private static final ResourceLocation HUMANOID_ST =
+
+    /*
+     * =========================================================
+     * YAPI
+     * =========================================================
+     *
+     * Dosya:
+     *
+     * data/humanoid/structures/humanoidbedrock.nbt
+     */
+
+    private static final ResourceLocation HUMANOID_BEDROCK =
             new ResourceLocation(
                     HumanoidMod.MOD_ID,
-                    "humanoidst"
+                    "humanoidbedrock"
             );
 
 
@@ -53,37 +63,14 @@ public class HumanoidDimensionStructures {
      */
 
     /*
-     * Her 40 tick = yaklaşık 2 saniyede bir kontrol.
+     * Her 20 tick = yaklaşık 1 saniye kontrol.
      */
-    private static final int CHECK_INTERVAL = 40;
+    private static final int CHECK_INTERVAL = 20;
 
     /*
-     * Çok nadir oluşma ihtimali.
-     *
-     * 1 / 20.000  -> humanoidsun
-     * 1 / 25.000  -> humanoidst
+     * Her 300 blokta bir bölge.
      */
-    private static final int HUMANOID_SUN_CHANCE = 20_000;
-    private static final int HUMANOID_ST_CHANCE = 25_000;
-
-    /*
-     * Yapı oyuncunun tam yanında oluşmasın.
-     *
-     * Minimum uzaklık:
-     * 100 blok
-     *
-     * Maksimum uzaklık:
-     * 300 blok
-     */
-    private static final int MIN_DISTANCE = 100;
-    private static final int MAX_DISTANCE = 300;
-
-    /*
-     * HUMANOIDSUN yüksekliği.
-     *
-     * Dünya yüzeyinden 60 blok yukarı.
-     */
-    private static final int SUN_HEIGHT_OFFSET = 60;
+    private static final int STRUCTURE_DISTANCE = 300;
 
     private static int tickCounter = 0;
 
@@ -103,6 +90,10 @@ public class HumanoidDimensionStructures {
             return;
         }
 
+        if (event.getServer() == null) {
+            return;
+        }
+
         tickCounter++;
 
         if (tickCounter < CHECK_INTERVAL) {
@@ -111,166 +102,112 @@ public class HumanoidDimensionStructures {
 
         tickCounter = 0;
 
-        if (event.getServer() == null) {
+
+        /*
+         * =====================================================
+         * SADECE DIMENSION 1
+         * =====================================================
+         */
+
+        ServerLevel dimension1 =
+                event.getServer().getLevel(
+                        new net.minecraft.resources.ResourceKey<>(
+                                net.minecraft.core.registries.Registries.DIMENSION,
+                                HUMANOID_DIMENSION
+                        )
+                );
+
+        if (dimension1 == null) {
             return;
         }
 
 
         /*
          * =====================================================
-         * SADECE OVERWORLD
+         * DIMENSION 1 OYUNCULARI
          * =====================================================
          */
 
-        ServerLevel overworld =
-                event.getServer().getLevel(Level.OVERWORLD);
+        for (var player : dimension1.players()) {
 
-        if (overworld == null) {
-            return;
-        }
-
-
-        /*
-         * Oyuncuları kontrol ediyoruz.
-         */
-        for (var player : overworld.players()) {
-
-            RandomSource random = overworld.random;
-
-
-            /*
-             * =================================================
-             * HUMANOIDSUN
-             * =================================================
-             */
-
-            if (random.nextInt(HUMANOID_SUN_CHANCE) == 0) {
-
-                trySpawnStructure(
-                        overworld,
-                        player.blockPosition(),
-                        HUMANOID_SUN,
-                        true
-                );
-            }
-
-
-            /*
-             * =================================================
-             * HUMANOIDST
-             * =================================================
-             */
-
-            if (random.nextInt(HUMANOID_ST_CHANCE) == 0) {
-
-                trySpawnStructure(
-                        overworld,
-                        player.blockPosition(),
-                        HUMANOID_ST,
-                        false
-                );
-            }
+            checkStructureForPlayer(
+                    dimension1,
+                    player.blockPosition()
+            );
         }
     }
 
 
     /*
      * =========================================================
-     * YAPI OLUŞTURMA
+     * OYUNCUNUN BULUNDUĞU 300x300 BÖLGE
      * =========================================================
      */
 
-    private static void trySpawnStructure(
+    private static void checkStructureForPlayer(
             ServerLevel level,
-            BlockPos playerPos,
-            ResourceLocation structureId,
-            boolean isSun
+            BlockPos playerPos
     ) {
 
-        /*
-         * Rastgele yön.
-         */
-        double angle =
-                level.random.nextDouble() * Math.PI * 2.0D;
+        int regionX =
+                Math.floorDiv(
+                        playerPos.getX(),
+                        STRUCTURE_DISTANCE
+                );
 
-
-        /*
-         * Rastgele uzaklık.
-         */
-        int distance =
-                MIN_DISTANCE
-                        + level.random.nextInt(
-                                MAX_DISTANCE - MIN_DISTANCE + 1
-                        );
-
-
-        /*
-         * Oyuncunun etrafında rastgele koordinat.
-         */
-        int x =
-                playerPos.getX()
-                        + (int) Math.round(
-                                Math.cos(angle) * distance
-                        );
-
-        int z =
-                playerPos.getZ()
-                        + (int) Math.round(
-                                Math.sin(angle) * distance
-                        );
-
-
-        /*
-         * Dünya yüzeyini bul.
-         */
-        int surfaceY =
-                level.getHeight(
-                        Heightmap.Types.WORLD_SURFACE,
-                        x,
-                        z
+        int regionZ =
+                Math.floorDiv(
+                        playerPos.getZ(),
+                        STRUCTURE_DISTANCE
                 );
 
 
         /*
-         * HUMANOIDSUN:
-         *
-         * Yüzeyden 60 blok yukarı.
-         *
-         * HUMANOIDST:
-         *
-         * Yüzey seviyesinde.
+         * Bu bölgenin merkez koordinatı.
          */
-        int y;
+        int centerX =
+                regionX * STRUCTURE_DISTANCE
+                        + STRUCTURE_DISTANCE / 2;
 
-        if (isSun) {
-            y = surfaceY + SUN_HEIGHT_OFFSET;
-        } else {
-            y = surfaceY;
-        }
-
-
-        BlockPos placementPos =
-                new BlockPos(x, y, z);
+        int centerZ =
+                regionZ * STRUCTURE_DISTANCE
+                        + STRUCTURE_DISTANCE / 2;
 
 
         /*
-         * Aynı koordinatta daha önce yapı oluşturulduysa
-         * tekrar oluşturma.
+         * Aynı 300x300 bölgesine tekrar yapı koyma.
          */
         HumanoidStructureData data =
                 HumanoidStructureData.get(level);
 
+        long regionKey =
+                createRegionKey(
+                        regionX,
+                        regionZ
+                );
 
-        long structureKey =
-                createStructureKey(
-                        x,
-                        z
+        if (data.isPlaced(regionKey)) {
+            return;
+        }
+
+
+        /*
+         * Yüzey yüksekliğini bul.
+         */
+        int surfaceY =
+                level.getHeight(
+                        Heightmap.Types.WORLD_SURFACE,
+                        centerX,
+                        centerZ
                 );
 
 
-        if (data.isPlaced(structureKey)) {
-            return;
-        }
+        BlockPos placementPos =
+                new BlockPos(
+                        centerX,
+                        surfaceY,
+                        centerZ
+                );
 
 
         /*
@@ -283,14 +220,21 @@ public class HumanoidDimensionStructures {
                 level.getStructureManager();
 
         StructureTemplate template =
-                manager.get(structureId).orElse(null);
+                manager.get(HUMANOID_BEDROCK)
+                        .orElse(null);
 
 
         if (template == null) {
 
             System.err.println(
-                    "[Humanoid] NBT yapı bulunamadı: "
-                            + structureId
+                    "[Humanoid] humanoidbedrock.nbt bulunamadı!"
+            );
+
+            System.err.println(
+                    "[Humanoid] Beklenen yol: "
+                            + "data/"
+                            + HumanoidMod.MOD_ID
+                            + "/structures/humanoidbedrock.nbt"
             );
 
             return;
@@ -315,39 +259,41 @@ public class HumanoidDimensionStructures {
 
         try {
 
-            template.placeInWorld(
-                    level,
-                    placementPos,
-                    placementPos,
-                    settings,
-                    level.random,
-                    2
-            );
+            boolean placed =
+                    template.placeInWorld(
+                            level,
+                            placementPos,
+                            placementPos,
+                            settings,
+                            level.random,
+                            2
+                    );
 
 
             /*
-             * Başarıyla yerleştirildikten sonra kaydet.
+             * Başarılıysa bölgeyi kaydet.
              */
-            data.markPlaced(structureKey);
-            data.setDirty();
+            if (placed) {
 
+                data.markPlaced(regionKey);
+                data.setDirty();
 
-            System.out.println(
-                    "[Humanoid] Yapı oluşturuldu: "
-                            + structureId
-                            + " X="
-                            + x
-                            + " Y="
-                            + y
-                            + " Z="
-                            + z
-            );
+                System.out.println(
+                        "[Humanoid] humanoidbedrock oluşturuldu: "
+                                + "X="
+                                + centerX
+                                + " Y="
+                                + surfaceY
+                                + " Z="
+                                + centerZ
+                );
+            }
 
         } catch (Exception exception) {
 
             System.err.println(
-                    "[Humanoid] Yapı yerleştirilirken hata oluştu: "
-                            + structureId
+                    "[Humanoid] humanoidbedrock "
+                            + "yerleştirilirken hata oluştu!"
             );
 
             exception.printStackTrace();
@@ -357,22 +303,19 @@ public class HumanoidDimensionStructures {
 
     /*
      * =========================================================
-     * YAPI ANAHTARI
+     * REGION ANAHTARI
      * =========================================================
-     *
-     * Aynı X/Z koordinatındaki yapının daha önce oluşturulup
-     * oluşturulmadığını takip eder.
      */
 
-    private static long createStructureKey(
-            int x,
-            int z
+    private static long createRegionKey(
+            int regionX,
+            int regionZ
     ) {
 
         return BlockPos.asLong(
-                x,
+                regionX,
                 0,
-                z
+                regionZ
         );
     }
 
@@ -381,18 +324,15 @@ public class HumanoidDimensionStructures {
      * =========================================================
      * SAVED DATA
      * =========================================================
-     *
-     * Dünya kapanıp açıldığında hangi yapıların oluşturulduğunu
-     * hatırlar.
      */
 
     public static class HumanoidStructureData
             extends SavedData {
 
         private static final String DATA_NAME =
-                "humanoid_overworld_structures";
+                "humanoid_dimension_structures";
 
-        private final Set<Long> placedStructures =
+        private final Set<Long> placedRegions =
                 new HashSet<>();
 
 
@@ -401,7 +341,7 @@ public class HumanoidDimensionStructures {
 
 
         /*
-         * Dünyadan kayıt yükleme.
+         * Dünyadan yükle.
          */
         public static HumanoidStructureData load(
                 CompoundTag tag
@@ -412,12 +352,12 @@ public class HumanoidDimensionStructures {
 
             long[] positions =
                     tag.getLongArray(
-                            "PlacedStructures"
+                            "PlacedRegions"
                     );
 
             for (long position : positions) {
 
-                data.placedStructures.add(
+                data.placedRegions.add(
                         position
                 );
             }
@@ -427,7 +367,7 @@ public class HumanoidDimensionStructures {
 
 
         /*
-         * Dünyaya kayıt kaydetme.
+         * Dünyaya kaydet.
          */
         @Override
         public CompoundTag save(
@@ -436,20 +376,20 @@ public class HumanoidDimensionStructures {
 
             long[] positions =
                     new long[
-                            placedStructures.size()
+                            placedRegions.size()
                     ];
 
             int index = 0;
 
             for (long position :
-                    placedStructures) {
+                    placedRegions) {
 
                 positions[index++] =
                         position;
             }
 
             tag.putLongArray(
-                    "PlacedStructures",
+                    "PlacedRegions",
                     positions
             );
 
@@ -458,33 +398,33 @@ public class HumanoidDimensionStructures {
 
 
         /*
-         * Daha önce oluşturuldu mu?
+         * Bölge daha önce oluşturuldu mu?
          */
         public boolean isPlaced(
-                long position
+                long region
         ) {
 
-            return placedStructures.contains(
-                    position
+            return placedRegions.contains(
+                    region
             );
         }
 
 
         /*
-         * Oluşturuldu olarak işaretle.
+         * Bölgeyi oluşturuldu olarak işaretle.
          */
         public void markPlaced(
-                long position
+                long region
         ) {
 
-            placedStructures.add(
-                    position
+            placedRegions.add(
+                    region
             );
         }
 
 
         /*
-         * SavedData'yı dünyadan al.
+         * SavedData'yı al.
          */
         public static HumanoidStructureData get(
                 ServerLevel level
