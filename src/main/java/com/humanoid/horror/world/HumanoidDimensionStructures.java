@@ -3,7 +3,9 @@ package com.humanoid.horror.world;
 import com.humanoid.horror.HumanoidMod;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -36,6 +38,12 @@ public class HumanoidDimensionStructures {
             new ResourceLocation(
                     HumanoidMod.MOD_ID,
                     "humanoid_dimension"
+            );
+
+    private static final ResourceKey<Level> DIMENSION1 =
+            ResourceKey.create(
+                    Registries.DIMENSION,
+                    HUMANOID_DIMENSION
             );
 
 
@@ -111,10 +119,7 @@ public class HumanoidDimensionStructures {
 
         ServerLevel dimension1 =
                 event.getServer().getLevel(
-                        new net.minecraft.resources.ResourceKey<>(
-                                net.minecraft.core.registries.Registries.DIMENSION,
-                                HUMANOID_DIMENSION
-                        )
+                        DIMENSION1
                 );
 
         if (dimension1 == null) {
