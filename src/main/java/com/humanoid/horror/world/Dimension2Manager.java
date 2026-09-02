@@ -79,6 +79,10 @@ public class Dimension2Manager {
                 level.setDayTime(13000);
             }
 
+            /*
+             * Oyuncu Dimension2'de değilse
+             * event sayaçlarını temizle.
+             */
             if (!isInDimension2(player)) {
 
                 timers.remove(player.getUUID());
@@ -89,6 +93,9 @@ public class Dimension2Manager {
 
             UUID uuid = player.getUUID();
 
+            /*
+             * Event devam ediyorsa sayacı azalt.
+             */
             if (eventRunning.getOrDefault(
                     uuid,
                     false
@@ -107,12 +114,14 @@ public class Dimension2Manager {
                 if (timer <= 0) {
 
                     finishEvent(player);
-
                 }
 
                 continue;
             }
 
+            /*
+             * Yeni event için rastgele süre.
+             */
             int timer =
                     timers.getOrDefault(
                             uuid,
@@ -133,7 +142,7 @@ public class Dimension2Manager {
     }
 
     /*
-     * Dimension2'de doğal mob spawnlarını tamamen engeller.
+     * Dimension2'de mob spawnlarını tamamen engelle.
      */
     @SubscribeEvent
     public static void onMobSpawn(
@@ -151,17 +160,11 @@ public class Dimension2Manager {
             return;
         }
 
-        if (event.getSpawnType()
-                == MobSpawnEvent.SpawnReason.NATURAL
-                || event.getSpawnType()
-                == MobSpawnEvent.SpawnReason.CHUNK_GENERATION
-                || event.getSpawnType()
-                == MobSpawnEvent.SpawnReason.PATROL
-                || event.getSpawnType()
-                == MobSpawnEvent.SpawnReason.REINFORCEMENT) {
-
-            event.setCanceled(true);
-        }
+        /*
+         * Dimension2'de oluşan bütün MobSpawnEvent'lerini
+         * iptal ediyoruz.
+         */
+        event.setCanceled(true);
     }
 
     private static boolean isInDimension2(
