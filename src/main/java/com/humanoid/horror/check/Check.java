@@ -85,7 +85,7 @@ public class Check {
                                     player.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(
                                                     Component.literal(
-                                                            "OBJECTIVE:"
+                                                            "§4RUN"
                                                     )
                                             )
                                     );
@@ -93,7 +93,7 @@ public class Check {
                                     player.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(
                                                     Component.literal(
-                                                            "LEAVE THE PLACE YOU ARE IN"
+                                                            "§4RUN"
                                                     )
                                             )
                                     );
