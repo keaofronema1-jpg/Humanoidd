@@ -79,6 +79,9 @@ public class HumanoidDimensionStructures {
 
         tickCounter = 0;
 
+        /*
+         * Dimension1'i al.
+         */
         ServerLevel dimension1 =
                 event.getServer().getLevel(DIMENSION1);
 
@@ -86,6 +89,17 @@ public class HumanoidDimensionStructures {
             return;
         }
 
+        /*
+         * Dimension1'i sürekli gece/akşam tut.
+         *
+         * 13000 = gece başlangıcı civarı.
+         */
+        dimension1.setDayTime(13000);
+
+        /*
+         * Dimension1'e giren oyuncuların
+         * bulunduğu 300x300 bölgeleri kontrol et.
+         */
         for (var player : dimension1.players()) {
 
             checkStructureForPlayer(
@@ -121,12 +135,16 @@ public class HumanoidDimensionStructures {
                         regionZ
                 );
 
+        /*
+         * Bu bölgede daha önce yapı oluşturulduysa
+         * tekrar oluşturma.
+         */
         if (data.isPlaced(regionKey)) {
             return;
         }
 
         /*
-         * Bölgenin içinde rastgele X/Z.
+         * Bölgenin başlangıç koordinatları.
          */
         int baseX =
                 regionX * STRUCTURE_DISTANCE;
@@ -134,6 +152,9 @@ public class HumanoidDimensionStructures {
         int baseZ =
                 regionZ * STRUCTURE_DISTANCE;
 
+        /*
+         * 300x300 alanın içinde rastgele konum.
+         */
         int randomX =
                 baseX + RANDOM.nextInt(
                         STRUCTURE_DISTANCE
@@ -144,6 +165,9 @@ public class HumanoidDimensionStructures {
                         STRUCTURE_DISTANCE
                 );
 
+        /*
+         * Yüzey yüksekliğini bul.
+         */
         int surfaceY =
                 level.getHeight(
                         Heightmap.Types.WORLD_SURFACE,
