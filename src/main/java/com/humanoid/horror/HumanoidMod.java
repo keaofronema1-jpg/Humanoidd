@@ -4,9 +4,9 @@ import com.humanoid.horror.entity.Creature3;
 import com.humanoid.horror.network.ModMessages;
 import com.humanoid.horror.registry.ModBlocks;
 import com.humanoid.horror.registry.ModEntities;
+import com.humanoid.horror.registry.ModItems;
 import com.humanoid.horror.registry.ModSounds;
 
-import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -39,11 +39,13 @@ public class HumanoidMod {
                         .getModEventBus();
 
         // ENTITY REGISTRY
-        // Bütün entity kayıtları artık sadece ModEntities'den geliyor.
         ModEntities.ENTITIES.register(modEventBus);
 
         // BLOCK REGISTRY
         ModBlocks.BLOCKS.register(modEventBus);
+
+        // ITEM REGISTRY
+        ModItems.ITEMS.register(modEventBus);
 
         // SOUND REGISTRY
         ModSounds.SOUNDS.register(modEventBus);
