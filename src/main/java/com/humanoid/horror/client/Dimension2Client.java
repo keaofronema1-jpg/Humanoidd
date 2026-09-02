@@ -22,13 +22,24 @@ import net.minecraftforge.fml.common.Mod;
 public class Dimension2Client {
 
     /*
-     * ARTIK HEDEF DIMENSION1.
+     * Dimension1:
+     * humanoid:humanoid_dimension
      */
     public static final ResourceLocation DIMENSION1 =
             new ResourceLocation(
                     "humanoid",
                     "humanoid_dimension"
             );
+
+    /*
+     * Dimension2MusicSound.java hâlâ DIMENSION2
+     * ismini kullandığı için uyumluluk amacıyla
+     * bu referansı koruyoruz.
+     *
+     * Artık DIMENSION2 de Dimension1'i gösteriyor.
+     */
+    public static final ResourceLocation DIMENSION2 =
+            DIMENSION1;
 
     private static Dimension2MusicSound musicSound;
 
@@ -73,7 +84,7 @@ public class Dimension2Client {
         }
 
         /*
-         * Dimension1'e girildiyse müziği başlat.
+         * Dimension1'e girince müziği başlat.
          */
         if (!eventPlaying &&
             musicSound == null) {
@@ -118,8 +129,7 @@ public class Dimension2Client {
     }
 
     /*
-     * Dimension2Manager tarafından kullanılan
-     * mevcut event müziği sistemi korunuyor.
+     * Mevcut event sistemi korunuyor.
      */
     public static void startEventSound() {
 
@@ -157,11 +167,11 @@ public class Dimension2Client {
     }
 
     /*
-     * ÇOK YOĞUN SİS
+     * =========================================================
+     * DIMENSION1 SİS
+     * =========================================================
      *
-     * Yaklaşık 1 chunk:
-     * 16 bloktan sonra sis başlıyor,
-     * 32 blok civarında görüş neredeyse bitiyor.
+     * Görüş yaklaşık 24 blok.
      */
     @SubscribeEvent
     public static void onFogRender(
@@ -191,6 +201,11 @@ public class Dimension2Client {
         event.setCanceled(true);
     }
 
+    /*
+     * =========================================================
+     * SİS RENGİ
+     * =========================================================
+     */
     @SubscribeEvent
     public static void onFogColor(
             ViewportEvent.ComputeFogColor event
@@ -212,14 +227,16 @@ public class Dimension2Client {
             return;
         }
 
-        /*
-         * Sis rengini çok karanlık yap.
-         */
         event.setRed(0.005F);
         event.setGreen(0.005F);
         event.setBlue(0.005F);
     }
 
+    /*
+     * =========================================================
+     * ÇIKIŞ / LOGOUT
+     * =========================================================
+     */
     @SubscribeEvent
     public static void onLogout(
             ClientPlayerNetworkEvent.LoggingOut event
