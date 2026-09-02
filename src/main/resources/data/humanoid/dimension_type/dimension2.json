@@ -14,8 +14,8 @@
   "monster_spawn_light_level": {
     "type": "minecraft:uniform",
     "value": {
-      "max_inclusive": 7,
-      "min_inclusive": 0
+      "max_inclusive": 15,
+      "min_inclusive": 15
     }
   },
   "natural": false,
