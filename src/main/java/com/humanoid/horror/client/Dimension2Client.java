@@ -4,8 +4,8 @@ import com.humanoid.horror.registry.ModSounds;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.event.TickEvent;
@@ -26,6 +26,8 @@ public class Dimension2Client {
             );
 
     private static Dimension2MusicSound musicSound;
+
+    private static SoundInstance eventSound;
 
     private static boolean eventPlaying = false;
 
@@ -106,25 +108,22 @@ public class Dimension2Client {
 
         stopMainMusic();
 
-        minecraft.getSoundManager().play(
-                SimpleSoundInstance.forUI(
-                        ModSounds.DIMENSION2_MUSIC2.get(),
-                        1.0F
-                )
+        eventSound = SimpleSoundInstance.forUI(
+                ModSounds.DIMENSION2_MUSIC2.get(),
+                1.0F
         );
+
+        minecraft.getSoundManager().play(eventSound);
     }
 
     public static void endEvent() {
 
         Minecraft minecraft = Minecraft.getInstance();
 
-        minecraft.getSoundManager().stopSounds(
-                new ResourceLocation(
-                        "humanoid",
-                        "dimension2music2"
-                ),
-                SoundSource.MUSIC
-        );
+        if (eventSound != null) {
+            minecraft.getSoundManager().stop(eventSound);
+            eventSound = null;
+        }
 
         eventPlaying = false;
     }
@@ -135,6 +134,14 @@ public class Dimension2Client {
     ) {
 
         stopMainMusic();
+
+        Minecraft minecraft = Minecraft.getInstance();
+
+        if (eventSound != null) {
+            minecraft.getSoundManager().stop(eventSound);
+            eventSound = null;
+        }
+
         eventPlaying = false;
     }
 }
