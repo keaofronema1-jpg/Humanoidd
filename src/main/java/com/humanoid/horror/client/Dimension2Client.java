@@ -6,7 +6,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.resources.ResourceLocation;
+
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -19,10 +21,13 @@ import net.minecraftforge.fml.common.Mod;
 )
 public class Dimension2Client {
 
-    public static final ResourceLocation DIMENSION2 =
+    /*
+     * ARTIK HEDEF DIMENSION1.
+     */
+    public static final ResourceLocation DIMENSION1 =
             new ResourceLocation(
                     "humanoid",
-                    "dimension2"
+                    "humanoid_dimension"
             );
 
     private static Dimension2MusicSound musicSound;
@@ -40,7 +45,8 @@ public class Dimension2Client {
             return;
         }
 
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
         if (minecraft.player == null ||
             minecraft.level == null) {
@@ -49,12 +55,15 @@ public class Dimension2Client {
             return;
         }
 
-        boolean inDimension2 =
+        boolean inDimension1 =
                 minecraft.level.dimension()
                         .location()
-                        .equals(DIMENSION2);
+                        .equals(DIMENSION1);
 
-        if (!inDimension2) {
+        /*
+         * Dimension1'de değilsek müziği durdur.
+         */
+        if (!inDimension1) {
 
             if (!eventPlaying) {
                 stopMainMusic();
@@ -63,6 +72,9 @@ public class Dimension2Client {
             return;
         }
 
+        /*
+         * Dimension1'e girildiyse müziği başlat.
+         */
         if (!eventPlaying &&
             musicSound == null) {
 
@@ -80,11 +92,14 @@ public class Dimension2Client {
             return;
         }
 
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
-        musicSound = new Dimension2MusicSound();
+        musicSound =
+                new Dimension2MusicSound();
 
-        minecraft.getSoundManager().play(musicSound);
+        minecraft.getSoundManager()
+                .play(musicSound);
     }
 
     public static void stopMainMusic() {
@@ -93,39 +108,116 @@ public class Dimension2Client {
             return;
         }
 
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
-        minecraft.getSoundManager().stop(musicSound);
+        minecraft.getSoundManager()
+                .stop(musicSound);
 
         musicSound = null;
     }
 
+    /*
+     * Dimension2Manager tarafından kullanılan
+     * mevcut event müziği sistemi korunuyor.
+     */
     public static void startEventSound() {
 
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
         eventPlaying = true;
 
         stopMainMusic();
 
-        eventSound = SimpleSoundInstance.forUI(
-                ModSounds.DIMENSION2_MUSIC2.get(),
-                1.0F
-        );
+        eventSound =
+                SimpleSoundInstance.forUI(
+                        ModSounds.DIMENSION2_MUSIC2.get(),
+                        1.0F
+                );
 
-        minecraft.getSoundManager().play(eventSound);
+        minecraft.getSoundManager()
+                .play(eventSound);
     }
 
     public static void endEvent() {
 
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
         if (eventSound != null) {
-            minecraft.getSoundManager().stop(eventSound);
+
+            minecraft.getSoundManager()
+                    .stop(eventSound);
+
             eventSound = null;
         }
 
         eventPlaying = false;
+    }
+
+    /*
+     * ÇOK YOĞUN SİS
+     *
+     * Yaklaşık 1 chunk:
+     * 16 bloktan sonra sis başlıyor,
+     * 32 blok civarında görüş neredeyse bitiyor.
+     */
+    @SubscribeEvent
+    public static void onFogRender(
+            ViewportEvent.RenderFog event
+    ) {
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.level == null) {
+            return;
+        }
+
+        boolean inDimension1 =
+                minecraft.level.dimension()
+                        .location()
+                        .equals(DIMENSION1);
+
+        if (!inDimension1) {
+            return;
+        }
+
+        event.setNearPlaneDistance(2.0F);
+
+        event.setFarPlaneDistance(24.0F);
+
+        event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onFogColor(
+            ViewportEvent.ComputeFogColor event
+    ) {
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.level == null) {
+            return;
+        }
+
+        boolean inDimension1 =
+                minecraft.level.dimension()
+                        .location()
+                        .equals(DIMENSION1);
+
+        if (!inDimension1) {
+            return;
+        }
+
+        /*
+         * Sis rengini çok karanlık yap.
+         */
+        event.setRed(0.005F);
+        event.setGreen(0.005F);
+        event.setBlue(0.005F);
     }
 
     @SubscribeEvent
@@ -135,10 +227,14 @@ public class Dimension2Client {
 
         stopMainMusic();
 
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
         if (eventSound != null) {
-            minecraft.getSoundManager().stop(eventSound);
+
+            minecraft.getSoundManager()
+                    .stop(eventSound);
+
             eventSound = null;
         }
 
