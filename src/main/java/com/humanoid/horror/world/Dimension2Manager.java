@@ -11,6 +11,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -67,6 +68,17 @@ public class Dimension2Manager {
                         .getPlayerList()
                         .getPlayers()) {
 
+            /*
+             * Dimension2'de zamanı sürekli geceye sabitle.
+             */
+            if (isInDimension2(player)) {
+
+                ServerLevel level =
+                        player.serverLevel();
+
+                level.setDayTime(13000);
+            }
+
             if (!isInDimension2(player)) {
 
                 timers.remove(player.getUUID());
@@ -117,6 +129,38 @@ public class Dimension2Manager {
 
                 timers.put(uuid, timer);
             }
+        }
+    }
+
+    /*
+     * Dimension2'de doğal mob spawnlarını tamamen engeller.
+     */
+    @SubscribeEvent
+    public static void onMobSpawn(
+            MobSpawnEvent event
+    ) {
+
+        if (!(event.getLevel() instanceof ServerLevel level)) {
+            return;
+        }
+
+        if (!level.dimension()
+                .location()
+                .equals(DIMENSION2)) {
+
+            return;
+        }
+
+        if (event.getSpawnType()
+                == MobSpawnEvent.SpawnReason.NATURAL
+                || event.getSpawnType()
+                == MobSpawnEvent.SpawnReason.CHUNK_GENERATION
+                || event.getSpawnType()
+                == MobSpawnEvent.SpawnReason.PATROL
+                || event.getSpawnType()
+                == MobSpawnEvent.SpawnReason.REINFORCEMENT) {
+
+            event.setCanceled(true);
         }
     }
 
