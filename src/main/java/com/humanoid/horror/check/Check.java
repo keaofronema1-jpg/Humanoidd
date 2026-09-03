@@ -5,7 +5,7 @@ import com.humanoid.horror.android.AndroidHandler;
 import com.humanoid.horror.pc.WindowsAtmosBridge;
 
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
