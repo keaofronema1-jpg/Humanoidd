@@ -1,6 +1,6 @@
 package com.humanoid.horror.server;
 
-import com.humanoid.horror.pc.PCKeyHandler;
+import com.humanoid.horror.system.HorrorWorldData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -11,53 +11,62 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(modid = "humanoid", bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(
+        modid = "humanoid",
+        bus = Mod.EventBusSubscriber.Bus.FORGE
+)
 public class LobbyEventHandler {
 
     public LobbyEventHandler() {
     }
 
-    /**
-     * OYUNCU DÜNYAYA GİRDİĞİ AN TETİKLENEN EVENT
-     */
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        
-        // Sistem zaten kilitlenip oyun başladıysa lobiyi tekrar kurma
-        if (PCKeyHandler.isLocked) {
-            return;
-        }
 
-        // Oyuncu nesnesi sunucu tarafında mı kontrolü
         Player player = event.getEntity();
+
+        // Dedicated Server tarafında yalnızca ServerPlayer ile çalış.
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return;
         }
 
-        // 1. OYUNCUYU MACERA MODUNA (ADVENTURE) ALIYORUZ
-        serverPlayer.setGameMode(GameType.ADVENTURE);
-
-        // Sunucu dünyasını (ServerLevel) alıyoruz
         ServerLevel serverLevel = serverPlayer.serverLevel();
 
-        // 2. DÜNYA SINIRINI 1 CHUNK (16 BLOK) OLARAK AYARLIYORUZ
+        /*
+         * PCKeyHandler CLIENT-ONLY olduğu için burada kesinlikle
+         * doğrudan kullanılmıyor.
+         *
+         * Kilit durumu artık ortak/server-safe HorrorWorldData
+         * üzerinden okunuyor.
+         */
+        HorrorWorldData data = HorrorWorldData.get(serverLevel);
+
+        // Sistem zaten kilitlenip oyun başladıysa
+        // oyuncunun lobby sistemi tekrar kurulmasın.
+        if (data.isLocked) {
+            return;
+        }
+
+        // Oyuncuyu Adventure moduna al.
+        serverPlayer.setGameMode(GameType.ADVENTURE);
+
+        // Lobby sınırını 16 blok yap.
         WorldBorder worldBorder = serverLevel.getWorldBorder();
         worldBorder.setSize(16.0D);
 
-        // Spawn noktasını alıyoruz
+        // Server'ın ortak spawn noktasını merkez olarak kullan.
         BlockPos spawnPos = serverLevel.getSharedSpawnPos();
-        
-        // Sınır merkezini oyuncunun duracağı tam bloğun merkezine kilitliyoruz (+0.5D kaydırma ile)
-        worldBorder.setCenter(spawnPos.getX() + 0.5D, spawnPos.getZ() + 0.5D); 
 
-        // Oyuncuyu bloğun tam ortasına güvenle teleport ediyoruz
+        worldBorder.setCenter(
+                spawnPos.getX() + 0.5D,
+                spawnPos.getZ() + 0.5D
+        );
+
+        // Oyuncuyu lobby spawn noktasına ışınla.
         serverPlayer.teleportTo(
-                serverLevel,
                 spawnPos.getX() + 0.5D,
                 spawnPos.getY(),
-                spawnPos.getZ() + 0.5D,
-                serverPlayer.getYRot(),
-                serverPlayer.getXRot()
+                spawnPos.getZ() + 0.5D
         );
     }
 }
