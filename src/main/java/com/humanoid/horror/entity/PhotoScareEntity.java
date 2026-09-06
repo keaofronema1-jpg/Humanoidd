@@ -1,17 +1,16 @@
 package com.humanoid.horror.entity;
 
-import com.humanoid.horror.registry.ModEntities;
 import com.humanoid.horror.registry.ModSounds;
 
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -25,16 +24,7 @@ public class PhotoScareEntity extends Entity {
 
     public PhotoScareEntity(
             EntityType<? extends PhotoScareEntity> type,
-            ServerLevel level
-    ) {
-        super(type, level);
-
-        this.noPhysics = true;
-    }
-
-    public PhotoScareEntity(
-            EntityType<? extends PhotoScareEntity> type,
-            net.minecraft.world.level.Level level
+            Level level
     ) {
         super(type, level);
 
@@ -47,13 +37,13 @@ public class PhotoScareEntity extends Entity {
 
     @Override
     protected void readAdditionalSaveData(
-            net.minecraft.nbt.CompoundTag tag
+            CompoundTag tag
     ) {
     }
 
     @Override
     protected void addAdditionalSaveData(
-            net.minecraft.nbt.CompoundTag tag
+            CompoundTag tag
     ) {
     }
 
@@ -63,7 +53,7 @@ public class PhotoScareEntity extends Entity {
         super.tick();
 
         /*
-         * Photo scare server tarafından kontrol edilir.
+         * Photo scare server tarafında kontrol edilir.
          */
         if (level().isClientSide()) {
             return;
@@ -78,10 +68,7 @@ public class PhotoScareEntity extends Entity {
         }
 
         /*
-         * Dünyadaki oyuncuların tamamını kontrol et.
-         *
-         * Burada tek bir target yok.
-         * Kim bakarsa o tetikler.
+         * Dünyadaki bütün oyuncuları kontrol et.
          */
         for (Player player : level().players()) {
 
@@ -98,7 +85,7 @@ public class PhotoScareEntity extends Entity {
             }
 
             /*
-             * Çok uzaktaki oyuncular kontrol edilmez.
+             * 64 bloktan uzaktaki oyuncular kontrol edilmez.
              */
             if (distanceToSqr(serverPlayer)
                     > LOOK_DISTANCE * LOOK_DISTANCE) {
@@ -106,16 +93,12 @@ public class PhotoScareEntity extends Entity {
             }
 
             /*
-             * Oyuncu gerçekten entity'ye bakıyor mu?
+             * Oyuncunun bakış ışını hitbox'a ulaşıyor mu?
              */
             if (isPlayerLookingAtHitbox(serverPlayer)) {
 
                 triggerScare(serverPlayer);
 
-                /*
-                 * İlk bakan oyuncu tetiklediği anda
-                 * entity biter.
-                 */
                 break;
             }
         }
@@ -123,10 +106,9 @@ public class PhotoScareEntity extends Entity {
 
     /*
      * =========================================================
-     * OYUNCUNUN HITBOX'A BAKIP BAKMADIĞINI KONTROL ET
+     * HITBOX BAKIŞ KONTROLÜ
      * =========================================================
      */
-
     private boolean isPlayerLookingAtHitbox(
             ServerPlayer player
     ) {
@@ -137,26 +119,19 @@ public class PhotoScareEntity extends Entity {
         Vec3 lookVector =
                 player.getViewVector(1.0F).normalize();
 
-        /*
-         * Oyuncunun bakış ışınını uzat.
-         */
         Vec3 rayEnd =
                 eyePosition.add(
                         lookVector.scale(LOOK_DISTANCE)
                 );
 
         /*
-         * Entity'nin gerçek hitbox'ı.
-         */
-        AABB hitbox =
-                getBoundingBox();
-
-        /*
-         * Ray ile hitbox kesişiyor mu?
+         * Entity'nin mevcut Minecraft hitbox'ını kullanıyoruz.
          *
-         * Bu sayede oyuncunun kamerayı gerçekten
-         * entity'nin üzerine getirmesi gerekir.
+         * getBoundingBox() override edilmiyor çünkü
+         * Entity.getBoundingBox() Forge 1.20.1'de final.
          */
+        AABB hitbox = getBoundingBox();
+
         return hitbox.clip(
                 eyePosition,
                 rayEnd
@@ -168,7 +143,6 @@ public class PhotoScareEntity extends Entity {
      * SCARE
      * =========================================================
      */
-
     private void triggerScare(
             ServerPlayer player
     ) {
@@ -194,7 +168,7 @@ public class PhotoScareEntity extends Entity {
         );
 
         /*
-         * entity.ogg sesi.
+         * entity.ogg
          */
         if (ModSounds.PHOTO_ENTITY.isPresent()) {
 
@@ -209,32 +183,16 @@ public class PhotoScareEntity extends Entity {
         }
 
         /*
-         * Entity anında kaybolur.
+         * Entity anında yok olur.
          */
         discard();
     }
 
     /*
      * =========================================================
-     * HITBOX
+     * ENTITY DAVRANIŞI
      * =========================================================
-     *
-     * Photo scare görüntüsünün hitbox'ını burada belirliyoruz.
      */
-
-    @Override
-    public AABB getBoundingBox() {
-
-        return new AABB(
-                getX() - 0.5D,
-                getY(),
-                getZ() - 0.5D,
-
-                getX() + 0.5D,
-                getY() + 2.0D,
-                getZ() + 0.5D
-        );
-    }
 
     @Override
     public boolean isPickable() {
