@@ -17,6 +17,43 @@ public class ModSounds {
                     HumanoidMod.MOD_ID
             );
 
+    // scare.ogg
+    public static final RegistryObject<SoundEvent> SCARE =
+            SOUNDS.register(
+                    "scare",
+                    () -> SoundEvent.createVariableRangeEvent(
+                            new ResourceLocation(
+                                    HumanoidMod.MOD_ID,
+                                    "scare"
+                            )
+                    )
+            );
+
+    // wep.ogg
+    public static final RegistryObject<SoundEvent> WEP =
+            SOUNDS.register(
+                    "wep",
+                    () -> SoundEvent.createVariableRangeEvent(
+                            new ResourceLocation(
+                                    HumanoidMod.MOD_ID,
+                                    "wep"
+                            )
+                    )
+            );
+
+    // cont.ogg
+    public static final RegistryObject<SoundEvent> CONT =
+            SOUNDS.register(
+                    "cont",
+                    () -> SoundEvent.createVariableRangeEvent(
+                            new ResourceLocation(
+                                    HumanoidMod.MOD_ID,
+                                    "cont"
+                            )
+                    )
+            );
+
+    // dimension2music.ogg
     public static final RegistryObject<SoundEvent> DIMENSION2_MUSIC =
             SOUNDS.register(
                     "dimension2music",
@@ -28,6 +65,7 @@ public class ModSounds {
                     )
             );
 
+    // dimension2music2.ogg
     public static final RegistryObject<SoundEvent> DIMENSION2_MUSIC2 =
             SOUNDS.register(
                     "dimension2music2",
@@ -39,6 +77,7 @@ public class ModSounds {
                     )
             );
 
+    // entity.ogg
     public static final RegistryObject<SoundEvent> PHOTO_ENTITY =
             SOUNDS.register(
                     "entity",
@@ -49,15 +88,16 @@ public class ModSounds {
                             )
                     )
             );
-}
 
-public static final RegistryObject<SoundEvent> RANDOM =
-        SOUNDS.register(
-                "random",
-                () -> SoundEvent.createVariableRangeEvent(
-                        new ResourceLocation(
-                                HumanoidMod.MOD_ID,
-                                "random"
-                        )
-                )
-        );
+    // random.ogg
+    public static final RegistryObject<SoundEvent> RANDOM =
+            SOUNDS.register(
+                    "random",
+                    () -> SoundEvent.createVariableRangeEvent(
+                            new ResourceLocation(
+                                    HumanoidMod.MOD_ID,
+                                    "random"
+                            )
+                    )
+            );
+}
