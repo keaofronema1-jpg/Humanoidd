@@ -9,6 +9,8 @@ import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
+
 @Mod.EventBusSubscriber(
         modid = "humanoid",
         bus = Mod.EventBusSubscriber.Bus.FORGE,
@@ -29,9 +31,15 @@ public class PauseMenuHandler {
         }
 
         /*
-         * Pause menüsündeki bütün butonları kontrol et.
+         * children() listesinin kendisi üzerinde dolaşmıyoruz.
+         * Kopyasını oluşturuyoruz.
+         *
+         * Böylece event.removeListener(...)
+         * gerçek widget listesini değiştirirken
+         * ConcurrentModificationException oluşmaz.
          */
-        for (var child : event.getScreen().children()) {
+        for (var child :
+                new ArrayList<>(event.getScreen().children())) {
 
             if (!(child instanceof AbstractWidget widget)) {
                 continue;
@@ -46,20 +54,17 @@ public class PauseMenuHandler {
             String text = message.getString();
 
             /*
-             * QUIT GAME
+             * Quit Game butonunu kaldır.
              */
             if (isQuitGame(text)) {
-
                 event.removeListener(widget);
-
                 continue;
             }
 
             /*
-             * OPEN TO LAN
+             * Open to LAN butonunu kaldır.
              */
             if (isOpenToLan(text)) {
-
                 event.removeListener(widget);
             }
         }
