@@ -5,6 +5,7 @@ import com.humanoid.horror.entity.Creature1;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 
@@ -25,6 +26,31 @@ public class Creature1HUDOverlay {
 
     private static final int X = 10;
     private static final int Y = 10;
+
+    // =========================================================
+    // HUD ARKA PLANI
+    // =========================================================
+
+    private static final ResourceLocation HUD_BACKGROUND =
+            new ResourceLocation(
+                    "humanoid",
+                    "textures/gui/creature1_hud.png"
+            );
+
+    // =========================================================
+    // HUD BOYUTU
+    // =========================================================
+
+    private static final int HUD_WIDTH = 160;
+    private static final int HUD_HEIGHT = 32;
+
+    // =========================================================
+    // YAZI KONUMU
+    // =========================================================
+
+    private static final int TEXT_X = X + 8;
+    private static final int TIMER_Y = Y + 6;
+    private static final int NAME_Y = Y + 18;
 
     // =========================================================
     // HUD RENDER
@@ -53,9 +79,6 @@ public class Creature1HUDOverlay {
         // /START KONTROLÜ
         // =====================================================
 
-        /*
-         * /start verilmeden HUD kesinlikle görünmez.
-         */
         if (!HumanoidMod.isStartTriggered) {
             return;
         }
@@ -73,10 +96,6 @@ public class Creature1HUDOverlay {
                         minecraft.player
                 );
 
-        /*
-         * Client tarafında Creature1 bulunmuyorsa
-         * hiçbir şey çizme.
-         */
         if (creature == null) {
             return;
         }
@@ -88,10 +107,6 @@ public class Creature1HUDOverlay {
         int timer =
                 creature.getDisplayTimer();
 
-        /*
-         * Güvenlik:
-         * Negatif değer gösterme.
-         */
         if (timer < 0) {
             timer = 0;
         }
@@ -103,10 +118,6 @@ public class Creature1HUDOverlay {
         String targetName =
                 creature.getTargetName();
 
-        /*
-         * Güvenlik:
-         * Null veya boş isim gelirse boş göster.
-         */
         if (
                 targetName == null
                         || targetName.isEmpty()
@@ -123,41 +134,46 @@ public class Creature1HUDOverlay {
 
         graphics.pose().pushPose();
 
-        /*
-         * =====================================================
-         * SAYAÇ
-         * =====================================================
-         *
-         * Sadece sayı.
-         * Arka plan yok.
-         * Kutu yok.
-         * Bar yok.
-         */
+        // =====================================================
+        // PNG ARKA PLAN
+        // =====================================================
+
+        graphics.blit(
+                HUD_BACKGROUND,
+                X,
+                Y,
+                0,
+                0,
+                HUD_WIDTH,
+                HUD_HEIGHT,
+                HUD_WIDTH,
+                HUD_HEIGHT
+        );
+
+        // =====================================================
+        // SAYAÇ
+        // =====================================================
 
         graphics.drawString(
                 minecraft.font,
                 String.valueOf(timer),
-                X,
-                Y,
+                TEXT_X,
+                TIMER_Y,
                 0xFFFFFFFF,
                 true
         );
 
-        /*
-         * =====================================================
-         * HEDEF OYUNCU ADI
-         * =====================================================
-         *
-         * Sayaçın hemen altında gösterilir.
-         */
+        // =====================================================
+        // HEDEF OYUNCU ADI
+        // =====================================================
 
         if (!targetName.isEmpty()) {
 
             graphics.drawString(
                     minecraft.font,
                     targetName,
-                    X,
-                    Y + 12,
+                    TEXT_X,
+                    NAME_Y,
                     0xFFFFFFFF,
                     true
             );
@@ -181,10 +197,10 @@ public class Creature1HUDOverlay {
         double closestDistance =
                 Double.MAX_VALUE;
 
-        /*
-         * Oyuncunun 512 blok çevresindeki
-         * yüklenmiş Creature1 entitylerini kontrol et.
-         */
+        // =====================================================
+        // 512 BLOK İÇİNDEKİ CREATURE1'LER
+        // =====================================================
+
         for (
                 Creature1 creature :
                 level.getEntitiesOfClass(
