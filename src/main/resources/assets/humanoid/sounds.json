@@ -1,4 +1,23 @@
+{
+  "scare": {
+    "category": "hostile",
+    "sounds": [
+      "humanoid:scare"
+    ]
+  },
 
+  "wep": {
+    "category": "player",
+    "sounds": [
+      "humanoid:wep"
+    ]
+  },
+
+  "entity.humanoid.cont": {
+    "category": "hostile",
+    "subtitle": "subtitles.humanoid.cont",
+    "sounds": [
+      {
         "name": "humanoid:cont",
         "stream": true
       }
@@ -30,6 +49,15 @@
     "sounds": [
       {
         "name": "humanoid:entity"
+      }
+    ]
+  },
+
+  "random": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "humanoid:random"
       }
     ]
   }
