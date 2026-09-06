@@ -6,8 +6,6 @@ import com.humanoid.horror.network.HumanoidNetwork;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -17,9 +15,8 @@ import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(
@@ -34,23 +31,14 @@ public class Dimension2Manager {
                     "dimension2"
             );
 
-    private static final Random RANDOM =
-            new Random();
+    private static final ResourceLocation DIMENSION1 =
+            new ResourceLocation(
+                    "humanoid",
+                    "humanoid_dimension"
+            );
 
-    private static final Map<UUID, Integer> timers =
-            new HashMap<>();
-
-    private static final Map<UUID, Boolean> eventRunning =
-            new HashMap<>();
-
-    private static final int MIN_EVENT_TIME =
-            2400;
-
-    private static final int MAX_EVENT_TIME =
-            6000;
-
-    private static final int EVENT_LENGTH =
-            220;
+    private static final Set<UUID> playersInSequence =
+            new HashSet<>();
 
     @SubscribeEvent
     public static void serverTick(
@@ -71,7 +59,7 @@ public class Dimension2Manager {
                         .getPlayers()) {
 
             /*
-             * Dimension2'de zamanı sürekli geceye sabitle.
+             * Dimension2'de zamanı geceye sabitle.
              */
             if (isInDimension2(player)) {
 
@@ -82,94 +70,18 @@ public class Dimension2Manager {
             }
 
             /*
-             * Oyuncu Dimension2'de değilse
-             * event sayaçlarını temizle.
+             * Dimension2'den çıktıysa
+             * sequence bilgisini temizle.
              */
             if (!isInDimension2(player)) {
 
-                timers.remove(player.getUUID());
-                eventRunning.remove(player.getUUID());
-
-                continue;
-            }
-
-            UUID uuid = player.getUUID();
-
-            /*
-             * Event devam ediyorsa sayacı azalt.
-             */
-            if (eventRunning.getOrDefault(
-                    uuid,
-                    false
-            )) {
-
-                int timer =
-                        timers.getOrDefault(
-                                uuid,
-                                EVENT_LENGTH
-                        );
-
-                timer--;
-
-                timers.put(uuid, timer);
-
-                if (timer <= 0) {
-
-                    finishEvent(player);
-                }
-
-                continue;
-            }
-
-            /*
-             * Yeni event için rastgele süre.
-             */
-            int timer =
-                    timers.getOrDefault(
-                            uuid,
-                            randomEventTime()
-                    );
-
-            timer--;
-
-            if (timer <= 0) {
-
-                startEvent(player);
-
-            } else {
-
-                timers.put(uuid, timer);
+                playersInSequence.remove(
+                        player.getUUID()
+                );
             }
         }
     }
 
-    /*
-     * =========================================================
-     * DIMENSION2 VANILLA MOB ENGELLEME
-     * =========================================================
-     *
-     * MobSpawnEvent kullanılmıyor.
-     *
-     * Çünkü bazı MobSpawnEvent türleri cancel edilemez.
-     *
-     * Bunun yerine vanilla mob spawn olduktan hemen sonra
-     * LivingTickEvent üzerinden kontrol edilip siliniyor.
-     *
-     * Sadece namespace'i "minecraft" olan Mob'lar silinir.
-     *
-     * Örnek:
-     *
-     * minecraft:zombie     -> SİL
-     * minecraft:skeleton    -> SİL
-     * minecraft:creeper     -> SİL
-     * minecraft:spider      -> SİL
-     * minecraft:cow         -> SİL
-     * minecraft:pig         -> SİL
-     *
-     * humanoid:creature1    -> KORU
-     * humanoid:creature2    -> KORU
-     * humanoid:creature3    -> KORU
-     */
     @SubscribeEvent
     public static void onLivingTick(
             LivingEvent.LivingTickEvent event
@@ -184,107 +96,69 @@ public class Dimension2Manager {
         }
 
         ResourceLocation entityId =
-                net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
-                        .getKey(mob.getType());
+                net.minecraft.core.registries
+                        .BuiltInRegistries
+                        .ENTITY_TYPE
+                        .getKey(
+                                mob.getType()
+                        );
 
         if (entityId == null) {
             return;
         }
 
         /*
-         * Sadece vanilla Minecraft entity'leri.
+         * Vanilla moblarını Dimension2'de tutma.
          */
-        if ("minecraft".equals(entityId.getNamespace())) {
+        if ("minecraft".equals(
+                entityId.getNamespace()
+        )) {
 
             mob.discard();
         }
     }
 
-    private static boolean isInDimension2(
+    public static void beginMusicSequence(
             ServerPlayer player
     ) {
 
-        return player.level()
-                .dimension()
-                .location()
-                .equals(DIMENSION2);
+        if (player == null) {
+            return;
+        }
+
+        if (!isInDimension2(player)) {
+            return;
+        }
+
+        playersInSequence.add(
+                player.getUUID()
+        );
     }
 
-    private static boolean isInDimension2(
-            Mob mob
-    ) {
-
-        return mob.level()
-                .dimension()
-                .location()
-                .equals(DIMENSION2);
-    }
-
-    private static int randomEventTime() {
-
-        return MIN_EVENT_TIME +
-                RANDOM.nextInt(
-                        MAX_EVENT_TIME -
-                        MIN_EVENT_TIME +
-                        1
-                );
-    }
-
-    private static void startEvent(
+    public static void finishMusicSequence(
             ServerPlayer player
     ) {
 
-        UUID uuid = player.getUUID();
+        if (player == null) {
+            return;
+        }
 
-        eventRunning.put(uuid, true);
+        if (!isInDimension2(player)) {
+            return;
+        }
 
-        timers.put(
-                uuid,
-                EVENT_LENGTH
-        );
+        UUID uuid =
+                player.getUUID();
 
-        player.addEffect(
-                new MobEffectInstance(
-                        MobEffects.BLINDNESS,
-                        EVENT_LENGTH,
-                        0,
-                        false,
-                        false,
-                        false
-                )
-        );
+        /*
+         * Aynı bitiş paketinin iki kere
+         * teleport ettirmesini engelle.
+         */
+        if (!playersInSequence.add(uuid)) {
+            return;
+        }
 
-        HumanoidNetwork.CHANNEL.send(
-                net.minecraftforge.network.PacketDistributor
-                        .PLAYER.with(() -> player),
-
-                new Dimension2Packet(
-                        Dimension2Packet.Action.START_EVENT
-                )
-        );
-    }
-
-    private static void finishEvent(
-            ServerPlayer player
-    ) {
-
-        UUID uuid = player.getUUID();
-
-        player.removeEffect(
-                MobEffects.BLINDNESS
-        );
-
-        HumanoidNetwork.CHANNEL.send(
-                net.minecraftforge.network.PacketDistributor
-                        .PLAYER.with(() -> player),
-
-                new Dimension2Packet(
-                        Dimension2Packet.Action.END_EVENT
-                )
-        );
-
-        eventRunning.remove(uuid);
-        timers.remove(uuid);
+        playersInSequence.remove(uuid);
 
         ServerLevel overworld =
                 player.getServer()
@@ -307,5 +181,25 @@ public class Dimension2Manager {
                 player.getYRot(),
                 player.getXRot()
         );
+    }
+
+    private static boolean isInDimension2(
+            ServerPlayer player
+    ) {
+
+        return player.level()
+                .dimension()
+                .location()
+                .equals(DIMENSION2);
+    }
+
+    private static boolean isInDimension2(
+            Mob mob
+    ) {
+
+        return mob.level()
+                .dimension()
+                .location()
+                .equals(DIMENSION2);
     }
 }
