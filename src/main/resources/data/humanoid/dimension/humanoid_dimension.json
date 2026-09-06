@@ -1,5 +1,6 @@
 {
   "type": "humanoid:humanoid_dimension",
+  "effects": "humanoid:humanoid_dimension_effects",
   "generator": {
     "type": "minecraft:flat",
     "settings": {
