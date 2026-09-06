@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 
@@ -30,23 +31,6 @@ public class CreatureAISystem {
 
     private static final double TARGET_RANGE = 128.0D;
 
-    /*
-     * Her creature'ın takip ettiği oyuncuya göre
-     * en son bilinen mesafesini saklar.
-     *
-     * Örnek:
-     *
-     * Player:   X=100
-     * Creature: X=90
-     *
-     * offsetX = -10
-     *
-     * Oyuncu başka dimensionda X=500'e giderse:
-     *
-     * Creature -> X=490
-     *
-     * Böylece aradaki blok mesafesi korunur.
-     */
     private static final Map<UUID, FollowData> FOLLOW_DATA =
             new HashMap<>();
 
@@ -58,12 +42,19 @@ public class CreatureAISystem {
             LivingEvent.LivingTickEvent event
     ) {
 
-        LivingEntity entity = event.getEntity();
+        LivingEntity livingEntity = event.getEntity();
 
         /*
          * Sadece bizim creature'larımız.
          */
-        if (!isSupportedCreature(entity)) {
+        if (!isSupportedCreature(livingEntity)) {
+            return;
+        }
+
+        /*
+         * Bu sistem Mob metodlarını kullanıyor.
+         */
+        if (!(livingEntity instanceof Mob entity)) {
             return;
         }
 
@@ -85,8 +76,7 @@ public class CreatureAISystem {
         }
 
         /*
-         * Creature'ın kendi NoAI sistemi açıksa
-         * mevcut özel davranışını bozma.
+         * NoAI açıksa mevcut davranışı bozma.
          */
         if (entity.isNoAi()) {
             return;
@@ -102,10 +92,6 @@ public class CreatureAISystem {
          * =====================================================
          * ÖNCE DIMENSION TAKİBİ
          * =====================================================
-         *
-         * Oyuncu dimension değiştirdiyse,
-         * normal target validation'dan önce
-         * creature'ı onunla beraber taşıyoruz.
          */
         if (currentTarget instanceof ServerPlayer target) {
 
@@ -113,8 +99,8 @@ public class CreatureAISystem {
                     FOLLOW_DATA.get(entity.getUUID());
 
             /*
-             * Önceden bu oyuncuyu takip ediyorsa
-             * ve dimension değişmişse:
+             * Oyuncu başka dimension'a geçtiyse
+             * creature da aynı göreli mesafeyle geçer.
              */
             if (data != null
                     && data.targetUUID.equals(target.getUUID())
@@ -130,8 +116,7 @@ public class CreatureAISystem {
             }
 
             /*
-             * Aynı dimensiondaysa mevcut mesafeyi
-             * sürekli güncelle.
+             * Aynı dimensiondaysa offset'i güncelle.
              */
             if (target.level() == entity.level()
                     && target.isAlive()
@@ -163,8 +148,7 @@ public class CreatureAISystem {
         }
 
         /*
-         * Hedef artık geçerli değilse
-         * yeni oyuncu bul.
+         * Yeni hedef bul.
          */
         ServerPlayer target =
                 findNearestPlayer(entity);
@@ -226,7 +210,7 @@ public class CreatureAISystem {
      */
 
     private static void updateFollowData(
-            LivingEntity creature,
+            Mob creature,
             ServerPlayer target
     ) {
 
@@ -257,7 +241,7 @@ public class CreatureAISystem {
      */
 
     private static void teleportCreatureWithPlayerOffset(
-            LivingEntity creature,
+            Mob creature,
             ServerPlayer target,
             FollowData data
     ) {
@@ -270,10 +254,6 @@ public class CreatureAISystem {
         ServerLevel targetLevel =
                 target.serverLevel();
 
-        /*
-         * Oyuncunun yeni dimensiondaki konumu
-         * + Creature'ın eski göreli mesafesi.
-         */
         double destinationX =
                 target.getX() + data.offsetX;
 
@@ -301,19 +281,9 @@ public class CreatureAISystem {
                             Function<Boolean, Entity> repositionEntity
                     ) {
 
-                        /*
-                         * Vanilla'nın dimension entity
-                         * oluşturma/taşıma işlemini yap.
-                         *
-                         * Portal oluşturmasını istemiyoruz.
-                         */
                         Entity placed =
                                 repositionEntity.apply(false);
 
-                        /*
-                         * Son konumu doğrudan
-                         * oyuncunun göreli koordinatına ayarla.
-                         */
                         placed.teleportTo(
                                 destinationX,
                                 destinationY,
@@ -321,14 +291,18 @@ public class CreatureAISystem {
                         );
 
                         placed.setYRot(yaw);
-                        placed.setYHeadRot(yaw);
+
+                        if (placed instanceof Mob mob) {
+                            mob.setYHeadRot(yaw);
+                            mob.yBodyRot = yaw;
+                        }
 
                         return placed;
                     }
                 };
 
         /*
-         * Creature'ı yeni dimensiona gönder.
+         * Creature'ı yeni dimension'a gönder.
          */
         Entity newEntity =
                 creature.changeDimension(
@@ -337,20 +311,12 @@ public class CreatureAISystem {
                 );
 
         /*
-         * changeDimension yeni bir Entity
-         * döndürebilir.
+         * Yeni entity üzerinde hedefi koru.
          */
-        if (newEntity instanceof LivingEntity newCreature) {
+        if (newEntity instanceof Mob newCreature) {
 
-            /*
-             * Hedefi yeni entity üzerinde koru.
-             */
             newCreature.setTarget(target);
 
-            /*
-             * Yeni UUID üzerinden mesafe kaydını
-             * devam ettir.
-             */
             FOLLOW_DATA.put(
                     newCreature.getUUID(),
                     new FollowData(
@@ -361,9 +327,6 @@ public class CreatureAISystem {
                     )
             );
 
-            /*
-             * Eski entity kaydını temizle.
-             */
             FOLLOW_DATA.remove(
                     creature.getUUID()
             );
@@ -378,7 +341,7 @@ public class CreatureAISystem {
 
     private static boolean isValidTarget(
             LivingEntity target,
-            LivingEntity creature
+            Mob creature
     ) {
 
         if (target == null) {
@@ -398,11 +361,8 @@ public class CreatureAISystem {
         }
 
         /*
-         * Farklı dimensiondaki hedefi normal AI
-         * hedefi olarak kullanma.
-         *
-         * Dimension takip sistemi bunu
-         * ayrıca hallediyor.
+         * Farklı dimension normal hedef olarak
+         * kullanılamaz.
          */
         if (target.level() != creature.level()) {
             return false;
@@ -427,7 +387,7 @@ public class CreatureAISystem {
      */
 
     private static ServerPlayer findNearestPlayer(
-            LivingEntity entity
+            Mob entity
     ) {
 
         if (entity.level().getServer() == null) {
@@ -447,7 +407,7 @@ public class CreatureAISystem {
 
             /*
              * Başka dimensiondaki oyuncular
-             * normal hedef olarak seçilmez.
+             * normal hedef olmaz.
              */
             if (player.serverLevel()
                     != entity.level()) {
@@ -482,7 +442,7 @@ public class CreatureAISystem {
      */
 
     private static void moveToTarget(
-            LivingEntity entity,
+            Mob entity,
             LivingEntity target
     ) {
 
@@ -494,9 +454,7 @@ public class CreatureAISystem {
         }
 
         /*
-         * Creature2'nin mevcut speed'i 0 olduğu
-         * için summon edildiğinde hareket
-         * edebilmesini sağla.
+         * Creature2'nin hareket hızını düzelt.
          */
         if (entity instanceof Creature2) {
 
@@ -511,7 +469,7 @@ public class CreatureAISystem {
         }
 
         /*
-         * Humanoid speed.
+         * Humanoid hareket hızı.
          */
         if (entity instanceof Humanoid) {
 
@@ -535,6 +493,9 @@ public class CreatureAISystem {
 
         /*
          * Oyuncuya bak.
+         *
+         * Artık entity kesin olarak Mob olduğu
+         * için getLookControl() geçerli.
          */
         entity.getLookControl().setLookAt(
                 target,
@@ -550,7 +511,7 @@ public class CreatureAISystem {
      */
 
     private static double getMovementSpeed(
-            LivingEntity entity
+            Mob entity
     ) {
 
         if (entity instanceof Creature1) {
