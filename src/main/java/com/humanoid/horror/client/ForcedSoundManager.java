@@ -24,7 +24,7 @@ public class ForcedSoundManager {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent event) {
 
-        if (event.phase != ClientTickEvent.Phase.END) {
+        if (event.phase != net.minecraftforge.event.TickEvent.Phase.END) {
             return;
         }
 
