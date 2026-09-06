@@ -5,7 +5,7 @@ import net.minecraft.client.Options;
 import net.minecraft.sounds.SoundSource;
 
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientTickEvent;
+import net.minecraftforge.event.TickEvent.ClientTickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
