@@ -16,4 +16,9 @@ public class ModEntities {
 
     public static final RegistryObject<EntityType<Creature3>> CREATURE3 =
             com.humanoid.horror.registry.ModEntities.CREATURE3;
+
+    public static final RegistryObject<EntityType<PhotoScareEntity>> PHOTO_SCARE =
+            com.humanoid.horror.registry.ModEntities.PHOTO_SCARE;
 }
+
+Böylece iki "ModEntities" sınıfı da aynı kayıtları gösteriyor ve "PHOTO_SCARE" eksik kalmıyor.
