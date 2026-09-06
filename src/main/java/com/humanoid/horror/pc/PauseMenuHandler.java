@@ -24,39 +24,33 @@ public class PauseMenuHandler {
             ScreenEvent.Init.Post event
     ) {
 
-        if (!(event.getScreen()
-                instanceof PauseScreen)) {
-
+        if (!(event.getScreen() instanceof PauseScreen)) {
             return;
         }
 
         /*
          * Pause menüsündeki bütün butonları kontrol et.
          */
-        for (var child :
-                event.getScreen().children()) {
+        for (var child : event.getScreen().children()) {
 
             if (!(child instanceof AbstractWidget widget)) {
                 continue;
             }
 
-            Component message =
-                    widget.getMessage();
+            Component message = widget.getMessage();
 
             if (message == null) {
                 continue;
             }
 
-            String text =
-                    message.getString();
+            String text = message.getString();
 
             /*
              * QUIT GAME
              */
             if (isQuitGame(text)) {
 
-                event.getScreen()
-                        .removeWidget(widget);
+                event.removeListener(widget);
 
                 continue;
             }
@@ -66,70 +60,41 @@ public class PauseMenuHandler {
              */
             if (isOpenToLan(text)) {
 
-                event.getScreen()
-                        .removeWidget(widget);
+                event.removeListener(widget);
             }
         }
     }
 
-    private static boolean isQuitGame(
-            String text
-    ) {
+    private static boolean isQuitGame(String text) {
 
         if (text == null) {
             return false;
         }
 
         String normalized =
-                text.trim()
-                        .toLowerCase();
+                text.trim().toLowerCase();
 
-        return normalized.equals(
-                "quit game"
-        )
-                || normalized.equals(
-                        "quit"
-                )
-                || normalized.contains(
-                        "quit game"
-                )
-                || normalized.contains(
-                        "oyundan çık"
-                )
-                || normalized.contains(
-                        "oyundan cik"
-                );
+        return normalized.equals("quit game")
+                || normalized.equals("quit")
+                || normalized.contains("quit game")
+                || normalized.contains("oyundan çık")
+                || normalized.contains("oyundan cik");
     }
 
-    private static boolean isOpenToLan(
-            String text
-    ) {
+    private static boolean isOpenToLan(String text) {
 
         if (text == null) {
             return false;
         }
 
         String normalized =
-                text.trim()
-                        .toLowerCase();
+                text.trim().toLowerCase();
 
-        return normalized.equals(
-                "open to lan"
-        )
-                || normalized.contains(
-                        "open to lan"
-                )
-                || normalized.contains(
-                        "lan'a aç"
-                )
-                || normalized.contains(
-                        "lan'a ac"
-                )
-                || normalized.contains(
-                        "lan'a açmak"
-                )
-                || normalized.contains(
-                        "lan'a acmak"
-                );
+        return normalized.equals("open to lan")
+                || normalized.contains("open to lan")
+                || normalized.contains("lan'a aç")
+                || normalized.contains("lan'a ac")
+                || normalized.contains("lan'a açmak")
+                || normalized.contains("lan'a acmak");
     }
 }
