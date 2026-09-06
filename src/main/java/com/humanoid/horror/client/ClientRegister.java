@@ -9,11 +9,13 @@ import com.humanoid.horror.client.Creature1Renderer;
 import com.humanoid.horror.client.Creature2Renderer;
 import com.humanoid.horror.client.renderer.Creature3Renderer;
 import com.humanoid.horror.client.renderer.HumanoidRenderer;
+import com.humanoid.horror.client.renderer.PhotoScareRenderer;
 
 import com.humanoid.horror.registry.ModEntities;
 
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -23,10 +25,6 @@ import net.minecraftforge.fml.common.Mod;
         value = Dist.CLIENT
 )
 public class ClientRegister {
-
-    // =========================================================
-    // MODEL LAYER REGISTRATION
-    // =========================================================
 
     @SubscribeEvent
     public static void registerLayerDefinitions(
@@ -54,10 +52,6 @@ public class ClientRegister {
         );
     }
 
-    // =========================================================
-    // ENTITY RENDERER REGISTRATION
-    // =========================================================
-
     @SubscribeEvent
     public static void registerEntityRenderers(
             EntityRenderersEvent.RegisterRenderers event
@@ -81,6 +75,11 @@ public class ClientRegister {
         event.registerEntityRenderer(
                 ModEntities.HUMANOID.get(),
                 HumanoidRenderer::new
+        );
+
+        event.registerEntityRenderer(
+                ModEntities.PHOTO_SCARE.get(),
+                PhotoScareRenderer::new
         );
     }
 }
