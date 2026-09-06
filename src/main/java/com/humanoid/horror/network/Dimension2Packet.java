@@ -36,10 +36,6 @@ public class Dimension2Packet {
             return;
         }
 
-        /*
-         * Sadece Dimension2'deki oyuncu
-         * MUSIC_FINISHED gönderebilir.
-         */
         if (action == Action.MUSIC_FINISHED) {
 
             if (!player.level()
@@ -55,9 +51,8 @@ public class Dimension2Packet {
                 return;
             }
 
-            Dimension2ManagerServer.finishMusicSequence(
-                    player
-            );
+            com.humanoid.horror.world.Dimension2Manager
+                    .finishMusicSequence(player);
         }
     }
 
