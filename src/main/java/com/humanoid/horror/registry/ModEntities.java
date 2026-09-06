@@ -76,7 +76,9 @@ public class ModEntities {
                     "photo_scare",
                     () -> EntityType.Builder
                             .of(
-                                    PhotoScareEntity::new,
+                                    (EntityType<PhotoScareEntity> type,
+                                     net.minecraft.world.level.Level level) ->
+                                            new PhotoScareEntity(type, level),
                                     MobCategory.MISC
                             )
                             .sized(1.0F, 2.0F)
@@ -85,3 +87,7 @@ public class ModEntities {
                             .build("photo_scare")
             );
 }
+
+Buradaki kritik değişiklik sadece "PHOTO_SCARE" factory'sinde: Java'nın "Entity" olarak çıkarmasını engelleyip "EntityType<PhotoScareEntity>" olarak açıkça belirttik.
+
+Ama kanka: "PhotoScareEntity.java" içindeki constructor'ın da "EntityType<PhotoScareEntity>" / uyumlu generic kabul etmesi gerekiyor. Onu da gönderirsen tam halini direkt düzelteyim.
