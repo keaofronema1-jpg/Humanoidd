@@ -50,3 +50,14 @@ public class ModSounds {
                     )
             );
 }
+
+public static final RegistryObject<SoundEvent> RANDOM =
+        SOUNDS.register(
+                "random",
+                () -> SoundEvent.createVariableRangeEvent(
+                        new ResourceLocation(
+                                HumanoidMod.MOD_ID,
+                                "random"
+                        )
+                )
+        );
