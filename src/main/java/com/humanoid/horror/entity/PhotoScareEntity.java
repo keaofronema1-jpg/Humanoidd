@@ -253,9 +253,3 @@ public class PhotoScareEntity extends Entity {
         return true;
     }
 }
-
-2. "PhotoScareRenderer.java"
-
-Bu entity'nin görünüşünü kameraya dönük fotoğraf/billboard olarak göstereceğiz.
-
-"src/main/java/com/humanoid/horror/client/renderer/PhotoScareRenderer.java"
