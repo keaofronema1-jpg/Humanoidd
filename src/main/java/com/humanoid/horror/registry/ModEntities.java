@@ -87,7 +87,3 @@ public class ModEntities {
                             .build("photo_scare")
             );
 }
-
-Buradaki kritik değişiklik sadece "PHOTO_SCARE" factory'sinde: Java'nın "Entity" olarak çıkarmasını engelleyip "EntityType<PhotoScareEntity>" olarak açıkça belirttik.
-
-Ama kanka: "PhotoScareEntity.java" içindeki constructor'ın da "EntityType<PhotoScareEntity>" / uyumlu generic kabul etmesi gerekiyor. Onu da gönderirsen tam halini direkt düzelteyim.
