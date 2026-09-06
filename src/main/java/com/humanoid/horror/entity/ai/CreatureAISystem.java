@@ -246,11 +246,6 @@ public class CreatureAISystem {
             FollowData data
     ) {
 
-        if (!(creature.level()
-                instanceof ServerLevel currentLevel)) {
-            return;
-        }
-
         ServerLevel targetLevel =
                 target.serverLevel();
 
