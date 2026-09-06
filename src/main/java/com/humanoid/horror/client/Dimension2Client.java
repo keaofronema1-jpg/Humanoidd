@@ -82,9 +82,8 @@ public class Dimension2Client {
             }
 
             /*
-             * looping = false olduğu için
-             * SoundManager artık aktif değilse
-             * ilk müzik gerçekten bitmiştir.
+             * İlk müzik loop olmadığı için
+             * SoundManager aktif değilse gerçekten bitmiştir.
              */
             if (!minecraft.getSoundManager()
                     .isActive(musicSound)) {
@@ -110,10 +109,6 @@ public class Dimension2Client {
                 secondMusic = null;
                 secondMusicPlaying = false;
 
-                /*
-                 * İkinci müzik gerçekten bitti.
-                 * Server'a bildir.
-                 */
                 HumanoidNetwork.CHANNEL.sendToServer(
                         new Dimension2Packet(
                                 Dimension2Packet.Action.MUSIC_FINISHED
@@ -191,9 +186,6 @@ public class Dimension2Client {
         firstMusicFinished = false;
     }
 
-    /*
-     * Eski event sistemi için korunuyor.
-     */
     public static void startEventSound() {
 
         startSecondMusic();
