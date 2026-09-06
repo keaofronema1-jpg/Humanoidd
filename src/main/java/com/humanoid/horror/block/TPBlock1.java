@@ -1,7 +1,9 @@
 package com.humanoid.horror.block;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -17,8 +19,8 @@ public class TPBlock1 extends Block {
 
     private static final ResourceKey<Level> DIMENSION2 =
             ResourceKey.create(
-                    net.minecraft.core.registries.Registries.DIMENSION,
-                    new net.minecraft.resources.ResourceLocation(
+                    Registries.DIMENSION,
+                    new ResourceLocation(
                             "humanoid",
                             "dimension2"
                     )
@@ -26,8 +28,8 @@ public class TPBlock1 extends Block {
 
     private static final ResourceKey<Level> HUMANOID_DIMENSION =
             ResourceKey.create(
-                    net.minecraft.core.registries.Registries.DIMENSION,
-                    new net.minecraft.resources.ResourceLocation(
+                    Registries.DIMENSION,
+                    new ResourceLocation(
                             "humanoid",
                             "humanoid_dimension"
                     )
@@ -38,17 +40,17 @@ public class TPBlock1 extends Block {
     }
 
     @Override
-    public void stepOn(
+    public void entityInside(
+            BlockState state,
             Level level,
             BlockPos pos,
-            BlockState state,
             Entity entity
     ) {
 
-        super.stepOn(
+        super.entityInside(
+                state,
                 level,
                 pos,
-                state,
                 entity
         );
 
@@ -60,6 +62,10 @@ public class TPBlock1 extends Block {
             return;
         }
 
+        if (player.getServer() == null) {
+            return;
+        }
+
         /*
          * %50 Dimension2
          * %50 Humanoid Dimension
@@ -67,8 +73,11 @@ public class TPBlock1 extends Block {
         ResourceKey<Level> targetKey;
 
         if (RANDOM.nextBoolean()) {
+
             targetKey = DIMENSION2;
+
         } else {
+
             targetKey = HUMANOID_DIMENSION;
         }
 
@@ -80,14 +89,21 @@ public class TPBlock1 extends Block {
             return;
         }
 
-        BlockPos spawnPos =
-                targetLevel.getSharedSpawnPos();
+        /*
+         * Rastgele X / Z
+         * Y = 2
+         */
+        int randomX =
+                RANDOM.nextInt(2001) - 1000;
+
+        int randomZ =
+                RANDOM.nextInt(2001) - 1000;
 
         player.teleportTo(
                 targetLevel,
-                spawnPos.getX() + 0.5D,
-                spawnPos.getY() + 1.0D,
-                spawnPos.getZ() + 0.5D,
+                randomX + 0.5D,
+                2.0D,
+                randomZ + 0.5D,
                 player.getYRot(),
                 player.getXRot()
         );
