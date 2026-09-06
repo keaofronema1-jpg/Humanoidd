@@ -15,17 +15,17 @@ public class TPBlock2 extends Block {
     }
 
     @Override
-    public void stepOn(
+    public void entityInside(
+            BlockState state,
             Level level,
             BlockPos pos,
-            BlockState state,
             Entity entity
     ) {
 
-        super.stepOn(
+        super.entityInside(
+                state,
                 level,
                 pos,
-                state,
                 entity
         );
 
@@ -37,9 +37,13 @@ public class TPBlock2 extends Block {
             return;
         }
 
+        if (player.getServer() == null) {
+            return;
+        }
+
         /*
-         * Oyuncu TPBlock2'ye temas edince
-         * Overworld spawn noktasına gönder.
+         * Oyuncu TPBlock2'ye herhangi bir taraftan
+         * temas ettiğinde Overworld spawn'a gönderilir.
          */
         ServerLevel overworld =
                 player.getServer()
