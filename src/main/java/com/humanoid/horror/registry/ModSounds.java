@@ -5,6 +5,7 @@ import com.humanoid.horror.HumanoidMod;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
+
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -34,6 +35,17 @@ public class ModSounds {
                             new ResourceLocation(
                                     HumanoidMod.MOD_ID,
                                     "dimension2music2"
+                            )
+                    )
+            );
+
+    public static final RegistryObject<SoundEvent> PHOTO_ENTITY =
+            SOUNDS.register(
+                    "entity",
+                    () -> SoundEvent.createVariableRangeEvent(
+                            new ResourceLocation(
+                                    HumanoidMod.MOD_ID,
+                                    "entity"
                             )
                     )
             );
