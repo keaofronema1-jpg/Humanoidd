@@ -2,8 +2,10 @@ package com.humanoid.horror.network;
 
 import com.humanoid.horror.HumanoidMod;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+
 import net.minecraft.resources.ResourceLocation;
+
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
@@ -29,22 +31,47 @@ public class HumanoidNetwork {
                 Dimension2Packet.class,
 
                 (packet, buffer) -> {
-                    buffer.writeEnum(packet.getAction());
+
+                    buffer.writeEnum(
+                            packet.getAction()
+                    );
                 },
 
-                buffer -> new Dimension2Packet(
-                        buffer.readEnum(
-                                Dimension2Packet.Action.class
-                        )
-                ),
+                buffer ->
+                        new Dimension2Packet(
+                                buffer.readEnum(
+                                        Dimension2Packet.Action.class
+                                )
+                        ),
 
                 (packet, context) -> {
 
-                    context.get().enqueueWork(
-                            packet::handle
-                    );
+                    context.get().enqueueWork(() -> {
 
-                    context.get().setPacketHandled(true);
+                        ServerPlayer sender =
+                                context.get()
+                                        .getSender();
+
+                        /*
+                         * Server'dan gelen paket.
+                         */
+                        if (sender != null) {
+
+                            packet.handleServer(
+                                    sender
+                            );
+
+                            return;
+                        }
+
+                        /*
+                         * Client'a gelen paket.
+                         */
+                        packet.handleClient();
+                    });
+
+                    context.get()
+                            .setPacketHandled(true);
                 }
         );
     }
