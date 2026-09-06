@@ -1,4 +1,4 @@
-name: Build Minecraft Mod
+name: TheLostPlace
 
 on:
   workflow_dispatch:
@@ -8,28 +8,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Kodları İndir
+      - name: Download Cods
         uses: actions/checkout@v4
 
-      - name: Java 17 Kur
+      - name: Set Up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Gradle Yetkisi Ver
+      - name: Permission Give Gradle
         run: chmod +x gradlew
 
-      - name: Gradle Kur
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: wrapper
 
-      - name: Projeyi Derle
+      - name: Compile Project
         run: ./gradlew build
 
-      - name: Derlenen Mod Dosyasını Kaydet
+      - name: Download The Compiled Project
         uses: actions/upload-artifact@v4
         with:
-          name: Humanoid-Mod-Jar
+          name: TheLostPlace-Jar
           path: build/libs/*.jar
