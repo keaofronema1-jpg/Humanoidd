@@ -1,26 +1,25 @@
 package com.humanoid.horror.client;
 
-import com.humanoid.horror.HumanoidMod;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
-import net.minecraft.client.OptionInstance;
+import net.minecraft.sounds.SoundSource;
+
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientTickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(
-        modid = HumanoidMod.MOD_ID,
+        modid = "humanoid",
         bus = Mod.EventBusSubscriber.Bus.FORGE,
         value = Dist.CLIENT
 )
 public class ForcedSoundManager {
 
-    // 2 saniye = 40 tick
-    private static final int RESTORE_DELAY_TICKS = 40;
+    private static int tickCounter = 0;
 
-    private static int musicRestoreTimer = 0;
+    private ForcedSoundManager() {
+    }
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent event) {
@@ -31,70 +30,63 @@ public class ForcedSoundManager {
 
         Minecraft minecraft = Minecraft.getInstance();
 
-        if (minecraft.level == null) {
-            musicRestoreTimer = 0;
+        if (minecraft.player == null) {
             return;
         }
 
-        // Korku sistemi başlamadıysa hiçbir şeyi zorlamıyoruz.
-        if (!HorrorClientManager.isHorrorActive) {
-            musicRestoreTimer = 0;
+        tickCounter++;
+
+        /*
+         * Her 2 saniyede bir ses seviyelerini kontrol et.
+         */
+        if (tickCounter < 40) {
             return;
         }
+
+        tickCounter = 0;
 
         Options options = minecraft.options;
 
         /*
-         * MÜZİK
-         *
-         * Oyuncu müziği kapatırsa hemen açmıyoruz.
-         * 2 saniye sonra tekrar %100 yapıyoruz.
+         * Müzik %100
          */
-        double musicVolume = options.getSoundSourceVolume(
-                net.minecraft.sounds.SoundSource.MUSIC
-        );
-
-        if (musicVolume <= 0.0D) {
-
-            musicRestoreTimer++;
-
-            if (musicRestoreTimer >= RESTORE_DELAY_TICKS) {
-                options.getSoundSourceOptionInstance(
-                        net.minecraft.sounds.SoundSource.MUSIC
-                ).set(1.0D);
-
-                musicRestoreTimer = 0;
-            }
-
-        } else {
-            musicRestoreTimer = 0;
-
-            // Müzik açıksa sürekli %100'de tut.
-            options.getSoundSourceOptionInstance(
-                    net.minecraft.sounds.SoundSource.MUSIC
-            ).set(1.0D);
-        }
+        options.getSoundSourceOptionInstance(
+                SoundSource.MUSIC
+        ).set(1.0D);
 
         /*
-         * DİĞER TÜM SESLER
-         *
-         * Hostile, player, ambient, block vb.
-         * ses kategorilerini %100 tutuyoruz.
-         *
-         * MASTER hariç.
+         * Diğer sesler %100
          */
-        for (net.minecraft.sounds.SoundSource source :
-                net.minecraft.sounds.SoundSource.values()) {
+        options.getSoundSourceOptionInstance(
+                SoundSource.AMBIENT
+        ).set(1.0D);
 
-            if (source == net.minecraft.sounds.SoundSource.MASTER) {
-                continue;
-            }
+        options.getSoundSourceOptionInstance(
+                SoundSource.BLOCKS
+        ).set(1.0D);
 
-            if (source == net.minecraft.sounds.SoundSource.MUSIC) {
-                continue;
-            }
+        options.getSoundSourceOptionInstance(
+                SoundSource.HOSTILE
+        ).set(1.0D);
 
-            options.getSoundSourceOptionInstance(source).set(1.0D);
-        }
+        options.getSoundSourceOptionInstance(
+                SoundSource.NEUTRAL
+        ).set(1.0D);
+
+        options.getSoundSourceOptionInstance(
+                SoundSource.PLAYERS
+        ).set(1.0D);
+
+        options.getSoundSourceOptionInstance(
+                SoundSource.RECORDS
+        ).set(1.0D);
+
+        options.getSoundSourceOptionInstance(
+                SoundSource.VOICE
+        ).set(1.0D);
+
+        options.getSoundSourceOptionInstance(
+                SoundSource.WEATHER
+        ).set(1.0D);
     }
 }
