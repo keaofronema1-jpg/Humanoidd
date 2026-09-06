@@ -16,7 +16,7 @@ public class Dimension2MusicSound extends AbstractTickableSoundInstance {
                 RandomSource.create()
         );
 
-        this.looping = true;
+        this.looping = false;
         this.delay = 0;
         this.volume = 1.0F;
         this.pitch = 1.0F;
@@ -38,7 +38,7 @@ public class Dimension2MusicSound extends AbstractTickableSoundInstance {
 
         if (!minecraft.level.dimension()
                 .location()
-                .equals(Dimension2Client.DIMENSION2)) {
+                .equals(Dimension2Client.DIMENSION1)) {
 
             this.stop();
         }
