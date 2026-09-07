@@ -214,7 +214,7 @@ public class StartTimeWeatherManager {
          * -----------------------------------------------------
          * PHASE 3
          *
-         * 10 hızlı sabah -> akşam döngüsü.
+         * 10 hızlı sabah -> midnight döngüsü.
          * -----------------------------------------------------
          */
 
@@ -228,13 +228,19 @@ public class StartTimeWeatherManager {
                 cycle++;
 
                 /*
-                 * Tek cycle içinde:
+                 * Sıralama:
                  *
-                 * 0,2,4,6,8...
-                 * -> sabah
-                 *
-                 * 1,3,5,7,9...
-                 * -> akşam
+                 * Sabah
+                 *   ↓
+                 * 1 saniye
+                 *   ↓
+                 * Midnight
+                 *   ↓
+                 * 1 saniye
+                 *   ↓
+                 * Sabah
+                 *   ↓
+                 * ...
                  */
 
                 if (cycle % 2 == 0) {
@@ -243,11 +249,11 @@ public class StartTimeWeatherManager {
 
                 } else {
 
-                    setEvening();
+                    setMidnight();
                 }
 
                 /*
-                 * 10 cycle tamamlandı.
+                 * 10 döngü tamamlandı.
                  */
 
                 if (cycle >= TOTAL_CYCLES * 2) {
@@ -259,7 +265,7 @@ public class StartTimeWeatherManager {
                             0L;
 
                     /*
-                     * Sonunda gece.
+                     * Sonunda kesin olarak midnight.
                      */
 
                     setMidnight();
