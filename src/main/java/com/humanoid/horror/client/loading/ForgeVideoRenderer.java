@@ -4,25 +4,15 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
-
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import java.nio.ByteBuffer;
 
-/**
- * VLCJ tarafından alınan video frame'lerini
- * Minecraft'ın OpenGL render sistemine aktarır.
- *
- * OpenGL işlemleri yalnızca Minecraft render thread'inde
- * gerçekleştirilir.
- */
 public final class ForgeVideoRenderer {
 
     private static int textureId = -1;
@@ -30,13 +20,6 @@ public final class ForgeVideoRenderer {
     private static int textureWidth = 0;
     private static int textureHeight = 0;
 
-    /*
-     * VLCJ callback thread'inden gelen son frame.
-     *
-     * Bu buffer OpenGL'a doğrudan verilmez.
-     * Önce burada tutulur, sonra render thread'inde
-     * texture'a aktarılır.
-     */
     private static ByteBuffer pendingFrame;
 
     private static int pendingWidth = 0;
@@ -47,9 +30,6 @@ public final class ForgeVideoRenderer {
     private ForgeVideoRenderer() {
     }
 
-    /**
-     * OpenGL texture oluşturur.
-     */
     public static synchronized void init() {
 
         if (textureId != -1) {
@@ -93,15 +73,6 @@ public final class ForgeVideoRenderer {
         );
     }
 
-    /**
-     * VLCJ callback'inden gelen frame'i bekleyen frame olarak kaydeder.
-     *
-     * DİKKAT:
-     * Burada OpenGL kullanılmaz.
-     *
-     * Çünkü VLCJ bu metodu Minecraft render thread'i dışında
-     * çağırabilir.
-     */
     public static synchronized void uploadFrame(
             ByteBuffer source,
             int width,
@@ -116,46 +87,55 @@ public final class ForgeVideoRenderer {
             return;
         }
 
-        int requiredSize = width * height * 4;
+        init();
 
-        if (source.remaining() < requiredSize) {
-            return;
-        }
+        int requiredSize =
+                width * height * 4;
 
         if (pendingFrame == null ||
                 pendingFrame.capacity() < requiredSize) {
 
             pendingFrame =
-                    ByteBuffer.allocateDirect(requiredSize);
+                    ByteBuffer.allocateDirect(
+                            requiredSize
+                    );
         }
 
         pendingFrame.clear();
 
-        ByteBuffer sourceCopy =
+        ByteBuffer input =
                 source.duplicate();
 
-        sourceCopy.rewind();
+        input.rewind();
 
         /*
-         * VLCJ RV32 frame:
+         * VLCJ RV32 format:
          *
          * B G R A
          *
-         * Minecraft/OpenGL texture:
+         * OpenGL texture:
          *
          * R G B A
          */
-        for (int i = 0; i < width * height; i++) {
 
-            int b = sourceCopy.get() & 0xFF;
-            int g = sourceCopy.get() & 0xFF;
-            int r = sourceCopy.get() & 0xFF;
-            int a = sourceCopy.get() & 0xFF;
+        int pixelCount =
+                width * height;
 
-            pendingFrame.put((byte) r);
-            pendingFrame.put((byte) g);
-            pendingFrame.put((byte) b);
-            pendingFrame.put((byte) a);
+        for (int i = 0; i < pixelCount; i++) {
+
+            if (input.remaining() < 4) {
+                break;
+            }
+
+            byte b = input.get();
+            byte g = input.get();
+            byte r = input.get();
+            byte a = input.get();
+
+            pendingFrame.put(r);
+            pendingFrame.put(g);
+            pendingFrame.put(b);
+            pendingFrame.put(a);
         }
 
         pendingFrame.flip();
@@ -166,26 +146,10 @@ public final class ForgeVideoRenderer {
         framePending = true;
     }
 
-    /**
-     * Bekleyen frame'i OpenGL texture'a yükler.
-     *
-     * Bu metod render thread'inde çağrılmalıdır.
-     */
     private static synchronized void uploadPendingFrame() {
 
-        if (!framePending) {
-            return;
-        }
-
-        if (pendingFrame == null) {
-            framePending = false;
-            return;
-        }
-
-        if (pendingWidth <= 0 ||
-                pendingHeight <= 0) {
-
-            framePending = false;
+        if (!framePending ||
+                pendingFrame == null) {
             return;
         }
 
@@ -193,30 +157,43 @@ public final class ForgeVideoRenderer {
             init();
         }
 
-        textureWidth = pendingWidth;
-        textureHeight = pendingHeight;
-
         GL11.glBindTexture(
                 GL11.GL_TEXTURE_2D,
                 textureId
         );
 
-        GL11.glPixelStorei(
-                GL11.GL_UNPACK_ALIGNMENT,
-                1
-        );
+        if (textureWidth != pendingWidth ||
+                textureHeight != pendingHeight) {
 
-        GL11.glTexImage2D(
-                GL11.GL_TEXTURE_2D,
-                0,
-                GL11.GL_RGBA8,
-                textureWidth,
-                textureHeight,
-                0,
-                GL11.GL_RGBA,
-                GL11.GL_UNSIGNED_BYTE,
-                pendingFrame
-        );
+            GL11.glTexImage2D(
+                    GL11.GL_TEXTURE_2D,
+                    0,
+                    GL11.GL_RGBA8,
+                    pendingWidth,
+                    pendingHeight,
+                    0,
+                    GL11.GL_RGBA,
+                    GL11.GL_UNSIGNED_BYTE,
+                    pendingFrame
+            );
+
+            textureWidth = pendingWidth;
+            textureHeight = pendingHeight;
+
+        } else {
+
+            GL11.glTexSubImage2D(
+                    GL11.GL_TEXTURE_2D,
+                    0,
+                    0,
+                    0,
+                    pendingWidth,
+                    pendingHeight,
+                    GL11.GL_RGBA,
+                    GL11.GL_UNSIGNED_BYTE,
+                    pendingFrame
+            );
+        }
 
         GL11.glBindTexture(
                 GL11.GL_TEXTURE_2D,
@@ -226,72 +203,35 @@ public final class ForgeVideoRenderer {
         framePending = false;
     }
 
-    /**
-     * Videoyu ekranın tamamına çizer.
-     *
-     * Bu metod Minecraft render thread'inden çağrılmalıdır.
-     */
     public static synchronized void render(
             GuiGraphics guiGraphics,
             int screenWidth,
             int screenHeight
     ) {
 
-        if (screenWidth <= 0 ||
-                screenHeight <= 0) {
-
-            return;
-        }
-
-        /*
-         * Önce VLCJ'den gelen son frame'i
-         * OpenGL texture'a aktar.
-         */
-        uploadPendingFrame();
-
         if (textureId == -1) {
             return;
         }
 
+        uploadPendingFrame();
+
         if (textureWidth <= 0 ||
                 textureHeight <= 0) {
-
             return;
         }
-
-        PoseStack poseStack =
-                guiGraphics.pose();
-
-        poseStack.pushPose();
-
-        /*
-         * Minecraft'ın position + texture shader'ı.
-         */
 
         RenderSystem.setShader(
                 GameRenderer::getPositionTexShader
         );
 
-        /*
-         * Oluşturduğumuz OpenGL texture'ını
-         * texture unit 0'a bağla.
-         */
         RenderSystem.setShaderTexture(
                 0,
                 textureId
         );
 
         RenderSystem.enableBlend();
-
         RenderSystem.defaultBlendFunc();
 
-        /*
-         * Ekranın tamamını kaplayan quad.
-         *
-         * Texture koordinatlarını dikey olarak ters
-         * veriyoruz çünkü video buffer ile OpenGL
-         * koordinatlarının yönü farklı olabilir.
-         */
         BufferBuilder builder =
                 Tesselator.getInstance().getBuilder();
 
@@ -300,47 +240,47 @@ public final class ForgeVideoRenderer {
                 DefaultVertexFormat.POSITION_TEX
         );
 
-        var matrix =
-                poseStack.last().pose();
+        /*
+         * Full-screen 16:9 video.
+         *
+         * The video is stretched to the complete
+         * Minecraft loading screen.
+         */
 
         builder.vertex(
-                matrix,
-                0.0F,
+                0.0D,
                 screenHeight,
-                0.0F
+                0.0D
         ).uv(
                 0.0F,
-                0.0F
+                1.0F
         ).endVertex();
 
         builder.vertex(
-                matrix,
                 screenWidth,
                 screenHeight,
-                0.0F
-        ).uv(
-                1.0F,
-                0.0F
-        ).endVertex();
-
-        builder.vertex(
-                matrix,
-                screenWidth,
-                0.0F,
-                0.0F
+                0.0D
         ).uv(
                 1.0F,
                 1.0F
         ).endVertex();
 
         builder.vertex(
-                matrix,
-                0.0F,
-                0.0F,
+                screenWidth,
+                0.0D,
+                0.0D
+        ).uv(
+                1.0F,
                 0.0F
+        ).endVertex();
+
+        builder.vertex(
+                0.0D,
+                0.0D,
+                0.0D
         ).uv(
                 0.0F,
-                1.0F
+                0.0F
         ).endVertex();
 
         BufferUploader.drawWithShader(
@@ -348,33 +288,8 @@ public final class ForgeVideoRenderer {
         );
 
         RenderSystem.disableBlend();
-
-        poseStack.popPose();
     }
 
-    public static synchronized int getTextureId() {
-        return textureId;
-    }
-
-    public static synchronized int getTextureWidth() {
-        return textureWidth;
-    }
-
-    public static synchronized int getTextureHeight() {
-        return textureHeight;
-    }
-
-    public static synchronized boolean hasTexture() {
-        return textureId != -1 &&
-                textureWidth > 0 &&
-                textureHeight > 0;
-    }
-
-    /**
-     * OpenGL texture ve bekleyen frame'i temizler.
-     *
-     * Render thread'inde çağrılması gerekir.
-     */
     public static synchronized void release() {
 
         if (textureId != -1) {
@@ -386,13 +301,15 @@ public final class ForgeVideoRenderer {
             textureId = -1;
         }
 
+        if (pendingFrame != null) {
+            pendingFrame = null;
+        }
+
         textureWidth = 0;
         textureHeight = 0;
 
         pendingWidth = 0;
         pendingHeight = 0;
-
-        pendingFrame = null;
 
         framePending = false;
     }
