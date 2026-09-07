@@ -1,325 +1,183 @@
 package com.humanoid.horror.client.loading;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
 
-import java.nio.ByteBuffer;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 
 public final class ForgeVideoRenderer {
 
-    private static int textureId = -1;
-
-    private static int textureWidth = 0;
-    private static int textureHeight = 0;
-
-    private static ByteBuffer pendingFrame;
-
-    private static int pendingWidth = 0;
-    private static int pendingHeight = 0;
-
-    private static boolean framePending = false;
+    private static final ResourceLocation FORGE_TEXTURE =
+            new ResourceLocation(
+                    "humanoid",
+                    "video/forge.png"
+            );
 
     private ForgeVideoRenderer() {
     }
 
-    public static synchronized void init() {
-
-        if (textureId != -1) {
-            return;
-        }
-
-        textureId =
-                GL11.glGenTextures();
-
-        GL11.glBindTexture(
-                GL11.GL_TEXTURE_2D,
-                textureId
-        );
-
-        GL11.glTexParameteri(
-                GL11.GL_TEXTURE_2D,
-                GL11.GL_TEXTURE_MIN_FILTER,
-                GL11.GL_LINEAR
-        );
-
-        GL11.glTexParameteri(
-                GL11.GL_TEXTURE_2D,
-                GL11.GL_TEXTURE_MAG_FILTER,
-                GL11.GL_LINEAR
-        );
-
-        GL11.glTexParameteri(
-                GL11.GL_TEXTURE_2D,
-                GL11.GL_TEXTURE_WRAP_S,
-                GL12.GL_CLAMP_TO_EDGE
-        );
-
-        GL11.glTexParameteri(
-                GL11.GL_TEXTURE_2D,
-                GL11.GL_TEXTURE_WRAP_T,
-                GL12.GL_CLAMP_TO_EDGE
-        );
-
-        GL11.glBindTexture(
-                GL11.GL_TEXTURE_2D,
-                0
-        );
+    public static void init() {
+        // Minecraft texture yöneticisi forge.png'yi otomatik yükler.
     }
 
-    public static synchronized void uploadFrame(
-            ByteBuffer source,
-            int width,
-            int height
-    ) {
-
-        if (source == null ||
-                width <= 0 ||
-                height <= 0) {
-
-            return;
-        }
-
-        init();
-
-        int requiredSize =
-                width * height * 4;
-
-        if (pendingFrame == null ||
-                pendingFrame.capacity()
-                        < requiredSize) {
-
-            pendingFrame =
-                    ByteBuffer.allocateDirect(
-                            requiredSize
-                    );
-        }
-
-        pendingFrame.clear();
-
-        ByteBuffer input =
-                source.duplicate();
-
-        input.rewind();
-
-        int pixelCount =
-                width * height;
-
-        for (int i = 0;
-             i < pixelCount;
-             i++) {
-
-            if (input.remaining() < 4) {
-                break;
-            }
-
-            /*
-             * VLCJ RV32:
-             *
-             * B G R A
-             *
-             * OpenGL:
-             *
-             * R G B A
-             */
-
-            byte b = input.get();
-            byte g = input.get();
-            byte r = input.get();
-            byte a = input.get();
-
-            pendingFrame.put(r);
-            pendingFrame.put(g);
-            pendingFrame.put(b);
-            pendingFrame.put(a);
-        }
-
-        pendingFrame.flip();
-
-        pendingWidth =
-                width;
-
-        pendingHeight =
-                height;
-
-        framePending = true;
-    }
-
-    private static synchronized void uploadPendingFrame() {
-
-        if (!framePending ||
-                pendingFrame == null) {
-
-            return;
-        }
-
-        if (textureId == -1) {
-            init();
-        }
-
-        GL11.glBindTexture(
-                GL11.GL_TEXTURE_2D,
-                textureId
-        );
-
-        if (textureWidth != pendingWidth ||
-                textureHeight != pendingHeight) {
-
-            GL11.glTexImage2D(
-                    GL11.GL_TEXTURE_2D,
-                    0,
-                    GL11.GL_RGBA8,
-                    pendingWidth,
-                    pendingHeight,
-                    0,
-                    GL11.GL_RGBA,
-                    GL11.GL_UNSIGNED_BYTE,
-                    pendingFrame
-            );
-
-            textureWidth =
-                    pendingWidth;
-
-            textureHeight =
-                    pendingHeight;
-
-        } else {
-
-            GL11.glTexSubImage2D(
-                    GL11.GL_TEXTURE_2D,
-                    0,
-                    0,
-                    0,
-                    pendingWidth,
-                    pendingHeight,
-                    GL11.GL_RGBA,
-                    GL11.GL_UNSIGNED_BYTE,
-                    pendingFrame
-            );
-        }
-
-        GL11.glBindTexture(
-                GL11.GL_TEXTURE_2D,
-                0
-        );
-
-        framePending = false;
-    }
-
-    public static synchronized void render(
+    public static void render(
             GuiGraphics guiGraphics,
             int screenWidth,
             int screenHeight
     ) {
 
-        if (textureId == -1) {
+        if (!ForgeVideoPlayer.isStarted()) {
             return;
         }
 
-        uploadPendingFrame();
+        int frame =
+                ForgeVideoPlayer.getCurrentFrame();
 
-        if (textureWidth <= 0 ||
-                textureHeight <= 0) {
-
-            return;
+        if (frame < 0) {
+            frame = 0;
         }
 
-        RenderSystem.setShader(
-                GameRenderer::getPositionTexShader
-        );
-
-        RenderSystem.setShaderTexture(
-                0,
-                textureId
-        );
-
-        RenderSystem.enableBlend();
-
-        RenderSystem.defaultBlendFunc();
-
-        BufferBuilder builder =
-                Tesselator
-                        .getInstance()
-                        .getBuilder();
-
-        builder.begin(
-                VertexFormat.Mode.QUADS,
-                DefaultVertexFormat.POSITION_TEX
-        );
+        if (frame >= ForgeVideoPlayer.TOTAL_FRAMES) {
+            frame =
+                    ForgeVideoPlayer.TOTAL_FRAMES - 1;
+        }
 
         /*
-         * Full-screen quad
+         * Frame'in sprite sheet üzerindeki konumu.
+         *
+         * 28 sütun
+         * 28 satır
          */
 
-        builder.vertex(
-                0.0D,
-                screenHeight,
-                0.0D
-        ).uv(
-                0.0F,
-                1.0F
-        ).endVertex();
+        int column =
+                frame % ForgeVideoPlayer.COLUMNS;
 
-        builder.vertex(
-                screenWidth,
-                screenHeight,
-                0.0D
-        ).uv(
-                1.0F,
-                1.0F
-        ).endVertex();
+        int row =
+                frame / ForgeVideoPlayer.COLUMNS;
 
-        builder.vertex(
-                screenWidth,
-                0.0D,
-                0.0D
-        ).uv(
-                1.0F,
-                0.0F
-        ).endVertex();
+        /*
+         * Her frame:
+         *
+         * 384 x 240
+         */
 
-        builder.vertex(
-                0.0D,
-                0.0D,
-                0.0D
-        ).uv(
-                0.0F,
-                0.0F
-        ).endVertex();
+        int frameWidth =
+                ForgeVideoPlayer.FRAME_WIDTH;
 
-        BufferUploader.drawWithShader(
-                builder.end()
+        int frameHeight =
+                ForgeVideoPlayer.FRAME_HEIGHT;
+
+        /*
+         * Sprite sheet:
+         *
+         * 384 * 28 = 10752
+         * 240 * 28 = 6720
+         */
+
+        int textureWidth =
+                frameWidth *
+                        ForgeVideoPlayer.COLUMNS;
+
+        int textureHeight =
+                frameHeight *
+                        ForgeVideoPlayer.ROWS;
+
+        /*
+         * Ekrana görüntüyü oranını bozmadan
+         * mümkün olduğunca büyük çiz.
+         */
+
+        float videoAspect =
+                (float) frameWidth /
+                        (float) frameHeight;
+
+        float screenAspect =
+                (float) screenWidth /
+                        (float) screenHeight;
+
+        int drawWidth;
+        int drawHeight;
+
+        int x;
+        int y;
+
+        if (screenAspect > videoAspect) {
+
+            drawHeight =
+                    screenHeight;
+
+            drawWidth =
+                    Math.round(
+                            drawHeight *
+                                    videoAspect
+                    );
+
+            x =
+                    (screenWidth -
+                            drawWidth) / 2;
+
+            y = 0;
+
+        } else {
+
+            drawWidth =
+                    screenWidth;
+
+            drawHeight =
+                    Math.round(
+                            drawWidth /
+                                    videoAspect
+                    );
+
+            x = 0;
+
+            y =
+                    (screenHeight -
+                            drawHeight) / 2;
+        }
+
+        /*
+         * Sprite sheet'teki frame'in
+         * başlangıç koordinatı.
+         */
+
+        int sourceX =
+                column *
+                        frameWidth;
+
+        int sourceY =
+                row *
+                        frameHeight;
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+
+        guiGraphics.blit(
+                FORGE_TEXTURE,
+
+                x,
+                y,
+
+                drawWidth,
+                drawHeight,
+
+                sourceX,
+                sourceY,
+
+                frameWidth,
+                frameHeight,
+
+                textureWidth,
+                textureHeight
         );
 
         RenderSystem.disableBlend();
     }
 
-    public static synchronized void release() {
-
-        if (textureId != -1) {
-
-            GL11.glDeleteTextures(
-                    textureId
-            );
-
-            textureId = -1;
-        }
-
-        pendingFrame = null;
-
-        textureWidth = 0;
-        textureHeight = 0;
-
-        pendingWidth = 0;
-        pendingHeight = 0;
-
-        framePending = false;
+    public static void release() {
+        /*
+         * Texture Minecraft tarafından yönetiliyor.
+         * Burada silmiyoruz.
+         */
     }
 }
