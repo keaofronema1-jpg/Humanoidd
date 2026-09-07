@@ -4,6 +4,8 @@ import com.humanoid.horror.HumanoidMod;
 import com.humanoid.horror.android.AndroidHandler;
 import com.humanoid.horror.pc.WindowsAtmosBridge;
 import com.humanoid.horror.entity.Creature1HUDState;
+import com.humanoid.horror.network.Creature1HUDPacket;
+import com.humanoid.horror.network.ModMessages;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 
@@ -143,6 +145,59 @@ public class Check {
     }
 
     // =========================================================
+    // HUD SYNC
+    // =========================================================
+
+    private static void syncCreature1HUD(
+            MinecraftServer server
+    ) {
+
+        if (server == null) {
+            return;
+        }
+
+        if (server.getPlayerList() == null) {
+            return;
+        }
+
+        int distance =
+                Creature1HUDState.getDistance();
+
+        String targetName =
+                Creature1HUDState.getTargetName();
+
+        boolean active =
+                Creature1HUDState.isActive();
+
+        Creature1HUDPacket packet =
+                new Creature1HUDPacket(
+                        distance,
+                        targetName,
+                        active
+                );
+
+        /*
+         * Server'daki gerçek state'i bütün clientlara
+         * gönderiyoruz.
+         */
+        for (ServerPlayer player :
+                new ArrayList<>(
+                        server.getPlayerList()
+                                .getPlayers()
+                )) {
+
+            if (player == null) {
+                continue;
+            }
+
+            ModMessages.sendToPlayer(
+                    packet,
+                    player
+            );
+        }
+    }
+
+    // =========================================================
     // SERVER START
     // =========================================================
 
@@ -170,11 +225,13 @@ public class Check {
             /*
              * Dünya daha önce başlatılmışsa Creature1
              * state'ini tekrar aktif et.
-             *
-             * Hedef oyuncu daha sonra Creature1 sistemi
-             * tarafından güncellenecek.
              */
             Creature1HUDState.setActive(true);
+
+            /*
+             * Clientlara mevcut HUD state'ini gönder.
+             */
+            syncCreature1HUD(server);
 
             return;
         }
@@ -293,14 +350,8 @@ public class Check {
                             // =================================================
 
                             /*
-                             * Creature1 sisteminin ortak sayacını
+                             * Creature1 ortak sayacını
                              * 500'den başlat.
-                             *
-                             * Şimdilik ilk oyuncuyu hedef adı olarak
-                             * kullanıyoruz.
-                             *
-                             * Creature1'in gerçek hedef oyuncusu
-                             * seçildiğinde bu isim güncellenecek.
                              */
                             if (server.getPlayerList() != null
                                     && !server.getPlayerList()
@@ -339,6 +390,11 @@ public class Check {
                             StartTimeWeatherManager.start(
                                     server
                             );
+
+                            /*
+                             * İlk HUD state'i hemen clientlara gönder.
+                             */
+                            syncCreature1HUD(server);
 
                             /*
                              * RUN başlığı.
@@ -414,8 +470,6 @@ public class Check {
                                                             /*
                                                              * /start yapılmadan
                                                              * Force API aktif olmaz.
-                                                             *
-                                                             * Sessiz.
                                                              */
                                                             if (!isStartAlreadyUsed(
                                                                     server
@@ -613,17 +667,20 @@ public class Check {
         // =====================================================
 
         /*
-         * /start aktifse ortak Creature1 sayacını
-         * server tarafında ilerlet.
+         * Server authoritative state.
          *
          * 500 -> 499 -> 498 -> ... -> 0
-         *
-         * Bu değer Creature1AI tarafından okunur.
          */
         if (HumanoidMod.isStartTriggered
                 && Creature1HUDState.isActive()) {
 
             Creature1HUDState.tick();
+
+            /*
+             * Tick sonrası gerçek server değerini
+             * clientlara gönder.
+             */
+            syncCreature1HUD(server);
         }
 
         // =====================================================
