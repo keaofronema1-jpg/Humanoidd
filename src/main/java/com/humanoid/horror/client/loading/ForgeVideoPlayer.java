@@ -74,12 +74,6 @@ public final class ForgeVideoPlayer {
             return videoPath;
         }
 
-        Path parent = videoPath.getParent();
-
-        if (parent != null) {
-            Files.createDirectories(parent);
-        }
-
         try (InputStream input =
                      ForgeVideoPlayer.class
                              .getClassLoader()
@@ -168,11 +162,6 @@ public final class ForgeVideoPlayer {
                             int displayHeight
                     ) {
 
-                        /*
-                         * VLC'nin gerçek görüntü boyutunu
-                         * burada takip ediyoruz.
-                         */
-
                         if (displayWidth > 0) {
                             videoWidth = displayWidth;
                         } else {
@@ -190,15 +179,19 @@ public final class ForgeVideoPlayer {
                     public void allocatedBuffers(
                             ByteBuffer[] buffers
                     ) {
-                        /*
-                         * VLCJ native buffer'larını
-                         * kendisi yönetiyor.
-                         */
+                        // VLCJ native bufferlarını yönetir.
                     }
                 };
 
         RenderCallback renderCallback =
                 new RenderCallback() {
+
+                    @Override
+                    public void lock(
+                            MediaPlayer mediaPlayer
+                    ) {
+                        // VLCJ frame buffer kilidi.
+                    }
 
                     @Override
                     public void display(
@@ -269,10 +262,7 @@ public final class ForgeVideoPlayer {
                     public void unlock(
                             MediaPlayer mediaPlayer
                     ) {
-                        /*
-                         * VLCJ'nin kilitlediği native
-                         * video buffer burada serbest bırakılır.
-                         */
+                        // VLCJ frame buffer kilidi bırakılır.
                     }
                 };
 
