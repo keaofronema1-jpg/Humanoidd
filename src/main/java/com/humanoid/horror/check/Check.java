@@ -48,6 +48,18 @@ public class Check {
     private static final String START_USED_KEY =
             "start_used";
 
+    /*
+     * /start koordinatlarının kalıcı kayıt anahtarları.
+     */
+    private static final String START_X_KEY =
+            "start_x";
+
+    private static final String START_Y_KEY =
+            "start_y";
+
+    private static final String START_Z_KEY =
+            "start_z";
+
     private static final double INITIAL_BORDER_SIZE =
             16.0D;
 
@@ -76,44 +88,62 @@ public class Check {
                 .resolve(START_FILE_NAME);
     }
 
-    private static boolean isStartAlreadyUsed(
+    private static CompoundTag readStartData(
             MinecraftServer server
     ) {
         Path file = getStartFile(server);
 
         if (file == null) {
-            return false;
+            return null;
         }
 
         if (!Files.exists(file)) {
-            return false;
+            return null;
         }
 
         try {
-            CompoundTag data =
-                    NbtIo.readCompressed(
-                            file.toFile()
-                    );
-
-            if (data == null) {
-                return true;
-            }
-
-            return data.getBoolean(
-                    START_USED_KEY
+            return NbtIo.readCompressed(
+                    file.toFile()
             );
 
         } catch (Exception ignored) {
-            return true;
+            return null;
         }
     }
 
-    private static boolean saveStartUsed(
+    private static boolean isStartAlreadyUsed(
             MinecraftServer server
+    ) {
+        CompoundTag data =
+                readStartData(server);
+
+        if (data == null) {
+            return false;
+        }
+
+        return data.getBoolean(
+                START_USED_KEY
+        );
+    }
+
+    /*
+     * /start kullanıldığı anda:
+     *
+     * start_used = true
+     * start_x
+     * start_y
+     * start_z
+     *
+     * birlikte kaydedilir.
+     */
+    private static boolean saveStartUsed(
+            MinecraftServer server,
+            ServerPlayer player
     ) {
         Path file = getStartFile(server);
 
-        if (file == null) {
+        if (file == null
+                || player == null) {
             return false;
         }
 
@@ -132,6 +162,21 @@ public class Check {
                     true
             );
 
+            data.putInt(
+                    START_X_KEY,
+                    player.blockPosition().getX()
+            );
+
+            data.putInt(
+                    START_Y_KEY,
+                    player.blockPosition().getY()
+            );
+
+            data.putInt(
+                    START_Z_KEY,
+                    player.blockPosition().getZ()
+            );
+
             NbtIo.writeCompressed(
                     data,
                     file.toFile()
@@ -142,6 +187,77 @@ public class Check {
         } catch (IOException ignored) {
             return false;
         }
+    }
+
+    /*
+     * Kaydedilmiş gerçek /start koordinatını döndürür.
+     *
+     * Chunk sistemi bunu kullanacak.
+     */
+    public static net.minecraft.core.BlockPos getStartPosition(
+            MinecraftServer server
+    ) {
+        CompoundTag data =
+                readStartData(server);
+
+        if (data == null) {
+            return null;
+        }
+
+        if (!data.getBoolean(
+                START_USED_KEY
+        )) {
+            return null;
+        }
+
+        /*
+         * Eski humanoid_start.dat dosyalarında
+         * koordinat olmayabilir.
+         */
+        if (!data.contains(START_X_KEY)
+                || !data.contains(START_Y_KEY)
+                || !data.contains(START_Z_KEY)) {
+            return null;
+        }
+
+        return new net.minecraft.core.BlockPos(
+                data.getInt(START_X_KEY),
+                data.getInt(START_Y_KEY),
+                data.getInt(START_Z_KEY)
+        );
+    }
+
+    public static int getStartX(
+            MinecraftServer server
+    ) {
+        net.minecraft.core.BlockPos pos =
+                getStartPosition(server);
+
+        return pos == null
+                ? 0
+                : pos.getX();
+    }
+
+    public static int getStartY(
+            MinecraftServer server
+    ) {
+        net.minecraft.core.BlockPos pos =
+                getStartPosition(server);
+
+        return pos == null
+                ? 0
+                : pos.getY();
+    }
+
+    public static int getStartZ(
+            MinecraftServer server
+    ) {
+        net.minecraft.core.BlockPos pos =
+                getStartPosition(server);
+
+        return pos == null
+                ? 0
+                : pos.getZ();
     }
 
     // =========================================================
@@ -329,6 +445,17 @@ public class Check {
                             }
 
                             /*
+                             * /start sadece oyuncu tarafından
+                             * çalıştırılabilir.
+                             */
+                            if (!(commandContext
+                                    .getSource()
+                                    .getEntity()
+                                    instanceof ServerPlayer player)) {
+                                return 0;
+                            }
+
+                            /*
                              * /start sadece bir kere çalışabilir.
                              */
                             if (isStartAlreadyUsed(server)) {
@@ -337,8 +464,15 @@ public class Check {
 
                             /*
                              * Önce kalıcı olarak kaydet.
+                             *
+                             * Burada artık sadece
+                             * start_used değil,
+                             * X/Y/Z koordinatları da kaydediliyor.
                              */
-                            if (!saveStartUsed(server)) {
+                            if (!saveStartUsed(
+                                    server,
+                                    player
+                            )) {
                                 return 0;
                             }
 
