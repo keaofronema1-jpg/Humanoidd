@@ -267,7 +267,6 @@ public final class ForgeVideoRenderer {
         /*
          * Minecraft'ın position + texture shader'ı.
          */
-        RenderSystem.enableTexture();
 
         RenderSystem.setShader(
                 GameRenderer::getPositionTexShader
