@@ -14,6 +14,39 @@ public class TPBlock2 extends Block {
         super(properties);
     }
 
+    /*
+     * ---------------------------------------------------------
+     * ÜSTÜNE BASMA
+     * ---------------------------------------------------------
+     */
+
+    @Override
+    public void stepOn(
+            Level level,
+            BlockPos pos,
+            BlockState state,
+            Entity entity
+    ) {
+
+        super.stepOn(
+                level,
+                pos,
+                state,
+                entity
+        );
+
+        tryTeleport(
+                level,
+                entity
+        );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * BLOĞA TEMAS
+     * ---------------------------------------------------------
+     */
+
     @Override
     public void entityInside(
             BlockState state,
@@ -29,22 +62,51 @@ public class TPBlock2 extends Block {
                 entity
         );
 
+        tryTeleport(
+                level,
+                entity
+        );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * TELEPORT
+     * ---------------------------------------------------------
+     */
+
+    private static void tryTeleport(
+            Level level,
+            Entity entity
+    ) {
+
+        /*
+         * Sadece server.
+         */
+
         if (level.isClientSide) {
             return;
         }
 
+        /*
+         * Sadece oyuncu.
+         */
+
         if (!(entity instanceof ServerPlayer player)) {
             return;
         }
+
+        /*
+         * Server kontrolü.
+         */
 
         if (player.getServer() == null) {
             return;
         }
 
         /*
-         * Oyuncu TPBlock2'ye herhangi bir taraftan
-         * temas ettiğinde Overworld spawn'a gönderilir.
+         * Overworld.
          */
+
         ServerLevel overworld =
                 player.getServer()
                         .getLevel(Level.OVERWORLD);
@@ -53,8 +115,16 @@ public class TPBlock2 extends Block {
             return;
         }
 
+        /*
+         * Overworld'ün gerçek spawn noktası.
+         */
+
         BlockPos spawnPos =
                 overworld.getSharedSpawnPos();
+
+        /*
+         * Spawn'ın üstüne bırak.
+         */
 
         player.teleportTo(
                 overworld,
