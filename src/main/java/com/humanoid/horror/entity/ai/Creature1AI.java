@@ -20,6 +20,32 @@ public class Creature1AI extends Goal {
     private final Creature1 entity;
 
     // =========================================================
+    // SABİT HIZ
+    // =========================================================
+
+    /*
+     * Creature1 her zaman aynı hızda koşar.
+     *
+     * Oyuncu yürüyüş hızına göre:
+     *
+     * 1.0 = normal
+     * 1.05 = +0.05
+     *
+     * Bu değer hiçbir zaman birikmez.
+     */
+    private static final double CREATURE_SPEED = 1.05D;
+
+    // =========================================================
+    // MESAFE TOLERANSI
+    // =========================================================
+
+    /*
+     * Creature1 hedef mesafeye ulaştığında
+     * gereksiz ileri-geri hareket etmesin.
+     */
+    private static final double DISTANCE_TOLERANCE = 0.75D;
+
+    // =========================================================
     // BLOCK BREAK COOLDOWN
     // =========================================================
 
@@ -138,30 +164,87 @@ public class Creature1AI extends Goal {
                 this.entity.level();
 
         // =====================================================
+        // HUD / ORTAK SAYAÇTAN HEDEF MESAFEYİ AL
+        // =====================================================
+
+        /*
+         * BU DEĞER GERÇEK MESAFE DEĞİL.
+         *
+         * Creature1'in HUD/server sistemindeki
+         * ortak hedef mesafesidir.
+         *
+         * Örneğin:
+         *
+         * 500 -> 500 blok
+         * 200 -> 200 blok
+         * 90  -> 90 blok
+         * 89  -> 89 blok
+         * ...
+         * 0   -> oyuncuya ulaşma
+         *
+         * Burada artık gerçek mesafeyi bu değerin
+         * üzerine YAZMIYORUZ.
+         */
+        int targetDistance =
+                this.entity.getTargetDistance();
+
+        if (targetDistance < 0) {
+            targetDistance = 0;
+        }
+
+        // =====================================================
         // GERÇEK MESAFE
         // =====================================================
 
-        double distance =
+        double realDistance =
                 this.entity.distanceTo(target);
 
+        // =====================================================
+        // HEDEF MESAFEYE GÖRE HAREKET
+        // =====================================================
+
         /*
-         * Creature1'in HUD için kullandığı
-         * gerçek mesafeyi güncelle.
+         * Creature1'in gerçek mesafesi,
+         * sayaçta belirtilen mesafeden büyükse
+         * oyuncuya doğru sürekli koş.
+         *
+         * Örnek:
+         *
+         * Sayaç = 90
+         * Gerçek mesafe = 120
+         * -> koş
+         *
+         * Gerçek mesafe = 90
+         * -> dur
+         *
+         * Sayaç 89 olduğunda:
+         *
+         * Gerçek mesafe = 90
+         * Hedef = 89
+         * -> tekrar koş
          */
-        this.entity.setTargetDistance(
-                (int) distance
-        );
+        if (realDistance >
+                targetDistance + DISTANCE_TOLERANCE) {
 
-        // =====================================================
-        // OYUNCUYA DOĞRU YÜRÜ
-        // =====================================================
+            this.entity
+                    .getNavigation()
+                    .moveTo(
+                            target,
+                            CREATURE_SPEED
+                    );
 
-        this.entity
-                .getNavigation()
-                .moveTo(
-                        target,
-                        1.0D
-                );
+        } else {
+
+            /*
+             * Hedef mesafeye ulaştı.
+             *
+             * Sayaç bir sonraki değere düşene kadar
+             * gereksiz şekilde oyuncunun üstüne gitme.
+             */
+            this.entity
+                    .getNavigation()
+                    .stop();
+        }
 
         // =====================================================
         // OYUNCUYA BAK
@@ -194,11 +277,8 @@ public class Creature1AI extends Goal {
         /*
          * Jumpscare burada yapılmıyor.
          *
-         * Creature1.tick() içerisinde:
-         *
-         * distance <= 2.0D
-         *
-         * olduğunda jumpscare ve curse çalışıyor.
+         * Creature1.tick() içerisinde mevcut
+         * distance <= 2.0D kontrolü çalışmaya devam eder.
          */
     }
 
@@ -244,9 +324,9 @@ public class Creature1AI extends Goal {
             }
 
             /*
-             * Önündeki bloğu doğrudan AIR yap.
+             * Önündeki bloğu AIR yap.
              *
-             * Bu mevcut davranış korunuyor:
+             * Mevcut davranış korunuyor:
              * taş, toprak, obsidyen, bedrock vb.
              * bloklar temizlenebilir.
              */
