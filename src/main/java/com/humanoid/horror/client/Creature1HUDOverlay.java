@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -60,6 +61,16 @@ public class Creature1HUDOverlay {
     public static void onRenderOverlay(
             RenderGuiOverlayEvent.Post event
     ) {
+
+        /*
+         * HUD'ı yalnızca crosshair çizildikten sonra çiz.
+         *
+         * Böylece her frame'de tek kez ve güvenilir
+         * bir render noktası elde ediyoruz.
+         */
+        if (event.getOverlay() != VanillaGuiOverlay.CROSSHAIR.type()) {
+            return;
+        }
 
         Minecraft minecraft =
                 Minecraft.getInstance();
@@ -135,7 +146,7 @@ public class Creature1HUDOverlay {
         graphics.pose().pushPose();
 
         // =====================================================
-        // PNG ARKA PLAN
+        // PNG
         // =====================================================
 
         graphics.blit(
