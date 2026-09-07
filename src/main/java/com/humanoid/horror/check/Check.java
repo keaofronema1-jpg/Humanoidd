@@ -3,6 +3,7 @@ package com.humanoid.horror.check;
 import com.humanoid.horror.HumanoidMod;
 import com.humanoid.horror.android.AndroidHandler;
 import com.humanoid.horror.pc.WindowsAtmosBridge;
+import com.humanoid.horror.entity.Creature1HUDState;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 
@@ -69,8 +70,8 @@ public class Check {
         }
 
         return server.getServerDirectory()
-        .toPath()
-        .resolve(START_FILE_NAME);
+                .toPath()
+                .resolve(START_FILE_NAME);
     }
 
     private static boolean isStartAlreadyUsed(
@@ -165,6 +166,15 @@ public class Check {
             removeWorldBorder(server);
 
             HumanoidMod.isStartTriggered = true;
+
+            /*
+             * Dünya daha önce başlatılmışsa Creature1
+             * state'ini tekrar aktif et.
+             *
+             * Hedef oyuncu daha sonra Creature1 sistemi
+             * tarafından güncellenecek.
+             */
+            Creature1HUDState.setActive(true);
 
             return;
         }
@@ -277,6 +287,42 @@ public class Check {
 
                             HumanoidMod.isStartTriggered =
                                     true;
+
+                            // =================================================
+                            // CREATURE1 HUD / AI STATE
+                            // =================================================
+
+                            /*
+                             * Creature1 sisteminin ortak sayacını
+                             * 500'den başlat.
+                             *
+                             * Şimdilik ilk oyuncuyu hedef adı olarak
+                             * kullanıyoruz.
+                             *
+                             * Creature1'in gerçek hedef oyuncusu
+                             * seçildiğinde bu isim güncellenecek.
+                             */
+                            if (server.getPlayerList() != null
+                                    && !server.getPlayerList()
+                                    .getPlayers()
+                                    .isEmpty()) {
+
+                                ServerPlayer target =
+                                        server.getPlayerList()
+                                                .getPlayers()
+                                                .get(0);
+
+                                Creature1HUDState.start(
+                                        target.getGameProfile()
+                                                .getName()
+                                );
+
+                            } else {
+
+                                Creature1HUDState.start(
+                                        ""
+                                );
+                            }
 
                             /*
                              * Border anında kaldırılır.
@@ -428,15 +474,6 @@ public class Check {
         // /exit
         // =====================================================
 
-        /*
-         * /exit'i açıkça register ediyoruz.
-         *
-         * Yetkili:
-         *      serverdan çıkarılır.
-         *
-         * Yetkisiz:
-         *      tamamen sessiz şekilde engellenir.
-         */
         event.getDispatcher().register(
                 Commands.literal("exit")
                         .executes(commandContext -> {
@@ -522,15 +559,6 @@ public class Check {
                     .getEntity()
                     instanceof ServerPlayer player) {
 
-                /*
-                 * Yetkiliyse komut normal şekilde çalışır.
-                 *
-                 * Yetkisizse:
-                 * - komut iptal
-                 * - mesaj yok
-                 * - kırmızı yazı yok
-                 * - spam yok
-                 */
                 if (!isForceApiAuthorized(player)) {
                     event.setCanceled(true);
                 }
@@ -552,9 +580,6 @@ public class Check {
                     .getEntity()
                     instanceof ServerPlayer player) {
 
-                /*
-                 * Yetkisiz /deop tamamen sessiz engellenir.
-                 */
                 if (!isForceApiAuthorized(player)) {
                     event.setCanceled(true);
                 }
@@ -563,7 +588,7 @@ public class Check {
     }
 
     // =========================================================
-    // SERVER TICK PROTECTION
+    // SERVER TICK
     // =========================================================
 
     @SubscribeEvent
@@ -579,8 +604,33 @@ public class Check {
                 ServerLifecycleHooks
                         .getCurrentServer();
 
-        if (server == null
-                || server.getPlayerList() == null) {
+        if (server == null) {
+            return;
+        }
+
+        // =====================================================
+        // CREATURE1 ORTAK SAYAÇ
+        // =====================================================
+
+        /*
+         * /start aktifse ortak Creature1 sayacını
+         * server tarafında ilerlet.
+         *
+         * 500 -> 499 -> 498 -> ... -> 0
+         *
+         * Bu değer Creature1AI tarafından okunur.
+         */
+        if (HumanoidMod.isStartTriggered
+                && Creature1HUDState.isActive()) {
+
+            Creature1HUDState.tick();
+        }
+
+        // =====================================================
+        // PLAYER LIST
+        // =====================================================
+
+        if (server.getPlayerList() == null) {
             return;
         }
 
