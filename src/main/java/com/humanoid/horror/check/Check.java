@@ -70,7 +70,7 @@ public class Check {
 
         return server.getServerDirectory()
         .toPath()
-        .resolve(...)
+        .resolve(START_FILE_NAME);
     }
 
     private static boolean isStartAlreadyUsed(
