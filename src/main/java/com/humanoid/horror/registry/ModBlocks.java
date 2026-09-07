@@ -19,16 +19,36 @@ public class ModBlocks {
                     HumanoidMod.MOD_ID
             );
 
+    /*
+     * ---------------------------------------------------------
+     * TP BLOCK 1
+     * ---------------------------------------------------------
+     *
+     * Taş görünümünde.
+     * Bedrock gibi kırılamaz.
+     * İçinden geçilemez.
+     */
+
     public static final RegistryObject<Block> TPBLOCK1 =
             BLOCKS.register(
                     "tpblock1",
                     () -> new TPBlock1(
                             BlockBehaviour.Properties.of()
                                     .mapColor(MapColor.STONE)
-                                    .strength(3.5F, 6.0F)
-                                    .requiresCorrectToolForDrops()
+                                    .strength(-1.0F, 3600000.0F)
+                                    .noLootTable()
                     )
             );
+
+    /*
+     * ---------------------------------------------------------
+     * TP BLOCK 2
+     * ---------------------------------------------------------
+     *
+     * Taş görünümünde.
+     * Bedrock gibi kırılamaz.
+     * İçinden geçilemez.
+     */
 
     public static final RegistryObject<Block> TPBLOCK2 =
             BLOCKS.register(
@@ -36,8 +56,8 @@ public class ModBlocks {
                     () -> new TPBlock2(
                             BlockBehaviour.Properties.of()
                                     .mapColor(MapColor.STONE)
-                                    .strength(3.5F, 6.0F)
-                                    .requiresCorrectToolForDrops()
+                                    .strength(-1.0F, 3600000.0F)
+                                    .noLootTable()
                     )
             );
 }
