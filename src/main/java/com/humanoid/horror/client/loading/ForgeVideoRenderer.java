@@ -36,7 +36,8 @@ public final class ForgeVideoRenderer {
             return;
         }
 
-        textureId = GL11.glGenTextures();
+        textureId =
+                GL11.glGenTextures();
 
         GL11.glBindTexture(
                 GL11.GL_TEXTURE_2D,
@@ -79,11 +80,10 @@ public final class ForgeVideoRenderer {
             int height
     ) {
 
-        if (source == null) {
-            return;
-        }
+        if (source == null ||
+                width <= 0 ||
+                height <= 0) {
 
-        if (width <= 0 || height <= 0) {
             return;
         }
 
@@ -93,7 +93,8 @@ public final class ForgeVideoRenderer {
                 width * height * 4;
 
         if (pendingFrame == null ||
-                pendingFrame.capacity() < requiredSize) {
+                pendingFrame.capacity()
+                        < requiredSize) {
 
             pendingFrame =
                     ByteBuffer.allocateDirect(
@@ -108,24 +109,26 @@ public final class ForgeVideoRenderer {
 
         input.rewind();
 
-        /*
-         * VLCJ RV32 format:
-         *
-         * B G R A
-         *
-         * OpenGL texture:
-         *
-         * R G B A
-         */
-
         int pixelCount =
                 width * height;
 
-        for (int i = 0; i < pixelCount; i++) {
+        for (int i = 0;
+             i < pixelCount;
+             i++) {
 
             if (input.remaining() < 4) {
                 break;
             }
+
+            /*
+             * VLCJ RV32:
+             *
+             * B G R A
+             *
+             * OpenGL:
+             *
+             * R G B A
+             */
 
             byte b = input.get();
             byte g = input.get();
@@ -140,8 +143,11 @@ public final class ForgeVideoRenderer {
 
         pendingFrame.flip();
 
-        pendingWidth = width;
-        pendingHeight = height;
+        pendingWidth =
+                width;
+
+        pendingHeight =
+                height;
 
         framePending = true;
     }
@@ -150,6 +156,7 @@ public final class ForgeVideoRenderer {
 
         if (!framePending ||
                 pendingFrame == null) {
+
             return;
         }
 
@@ -177,8 +184,11 @@ public final class ForgeVideoRenderer {
                     pendingFrame
             );
 
-            textureWidth = pendingWidth;
-            textureHeight = pendingHeight;
+            textureWidth =
+                    pendingWidth;
+
+            textureHeight =
+                    pendingHeight;
 
         } else {
 
@@ -217,6 +227,7 @@ public final class ForgeVideoRenderer {
 
         if (textureWidth <= 0 ||
                 textureHeight <= 0) {
+
             return;
         }
 
@@ -230,10 +241,13 @@ public final class ForgeVideoRenderer {
         );
 
         RenderSystem.enableBlend();
+
         RenderSystem.defaultBlendFunc();
 
         BufferBuilder builder =
-                Tesselator.getInstance().getBuilder();
+                Tesselator
+                        .getInstance()
+                        .getBuilder();
 
         builder.begin(
                 VertexFormat.Mode.QUADS,
@@ -241,10 +255,7 @@ public final class ForgeVideoRenderer {
         );
 
         /*
-         * Full-screen 16:9 video.
-         *
-         * The video is stretched to the complete
-         * Minecraft loading screen.
+         * Full-screen quad
          */
 
         builder.vertex(
@@ -301,9 +312,7 @@ public final class ForgeVideoRenderer {
             textureId = -1;
         }
 
-        if (pendingFrame != null) {
-            pendingFrame = null;
-        }
+        pendingFrame = null;
 
         textureWidth = 0;
         textureHeight = 0;
