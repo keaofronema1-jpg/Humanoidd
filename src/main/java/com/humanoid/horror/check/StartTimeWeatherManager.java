@@ -2,109 +2,56 @@ package com.humanoid.horror.check;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(
-        modid = "humanoid"
-)
+@Mod.EventBusSubscriber(modid = "humanoid")
 public class StartTimeWeatherManager {
 
-    /*
-     * 20 tick = 1 saniye
-     */
+    private static final long TEN_SECONDS = 200L;
 
-    private static final long TEN_SECONDS =
-            200L;
+    private static final int TOTAL_CYCLES = 10;
 
-    /*
-     * Hızlı gün/gece döngüsünün toplam sayısı.
-     */
-
-    private static final int TOTAL_CYCLES =
-            10;
-
-    /*
-     * Her hızlı döngünün süresi.
-     *
-     * 40 tick = 2 saniye.
-     */
-
-    private static final long FAST_CYCLE_TICKS =
-            40L;
+    // 10 tick = 0.5 saniye
+    private static final long FAST_CYCLE_TICKS = 10L;
 
     private static MinecraftServer server;
 
-    private static boolean running =
-            false;
+    private static boolean running = false;
 
-    private static int phase =
-            0;
+    private static int phase = 0;
 
-    private static long timer =
-            0L;
+    private static long timer = 0L;
 
-    private static int cycle =
-            0;
+    private static int cycle = 0;
 
     private StartTimeWeatherManager() {
     }
 
-    /*
-     * ---------------------------------------------------------
-     * BAŞLAT
-     * ---------------------------------------------------------
-     */
-
-    public static void start(
-            MinecraftServer minecraftServer
-    ) {
+    public static void start(MinecraftServer minecraftServer) {
 
         if (minecraftServer == null) {
             return;
         }
 
-        /*
-         * Aynı sistemi ikinci kez başlatma.
-         */
-
         if (running) {
             return;
         }
 
-        server =
-                minecraftServer;
+        server = minecraftServer;
 
-        running =
-                true;
+        running = true;
 
-        phase =
-                1;
+        phase = 1;
 
-        timer =
-                0L;
+        timer = 0L;
 
-        cycle =
-                0;
+        cycle = 0;
 
-        /*
-         * İlk aşamada hava olduğu gibi bırakılıyor.
-         *
-         * Yani /start anında yağmur varsa
-         * yağmur devam eder.
-         */
-
-        ServerLevel level =
-                server.overworld();
+        ServerLevel level = server.overworld();
 
         if (level != null) {
-
-            /*
-             * Yağmur devam etsin.
-             */
-
             level.setWeatherParameters(
                     6000,
                     0,
@@ -113,12 +60,6 @@ public class StartTimeWeatherManager {
             );
         }
     }
-
-    /*
-     * ---------------------------------------------------------
-     * TICK
-     * ---------------------------------------------------------
-     */
 
     @SubscribeEvent
     public static void onServerTick(
@@ -146,32 +87,20 @@ public class StartTimeWeatherManager {
         timer++;
 
         /*
-         * -----------------------------------------------------
          * PHASE 1
          *
          * /start sonrası 10 saniye bekle.
-         * -----------------------------------------------------
          */
 
         if (phase == 1) {
 
             if (timer >= TEN_SECONDS) {
 
-                timer =
-                        0L;
+                timer = 0L;
 
-                phase =
-                        2;
-
-                /*
-                 * Yağmur durur.
-                 */
+                phase = 2;
 
                 stopRain();
-
-                /*
-                 * Anında sabah.
-                 */
 
                 setMorning();
             }
@@ -180,29 +109,20 @@ public class StartTimeWeatherManager {
         }
 
         /*
-         * -----------------------------------------------------
          * PHASE 2
          *
          * Sabah olduktan sonra 10 saniye bekle.
-         * -----------------------------------------------------
          */
 
         if (phase == 2) {
 
             if (timer >= TEN_SECONDS) {
 
-                timer =
-                        0L;
+                timer = 0L;
 
-                phase =
-                        3;
+                phase = 3;
 
-                cycle =
-                        0;
-
-                /*
-                 * İlk hızlı döngü sabah ile başlıyor.
-                 */
+                cycle = 0;
 
                 setMorning();
             }
@@ -211,37 +131,29 @@ public class StartTimeWeatherManager {
         }
 
         /*
-         * -----------------------------------------------------
          * PHASE 3
          *
-         * 10 hızlı sabah -> midnight döngüsü.
-         * -----------------------------------------------------
+         * Her 0.5 saniyede bir değişir.
+         *
+         * 1  -> Midnight
+         * 2  -> Sabah
+         * 3  -> Midnight
+         * 4  -> Sabah
+         * ...
+         * 9  -> Midnight
+         * 10 -> Sabah
+         *
+         * 10. değişimden sonra Midnight'a alınır
+         * ve sistem biter.
          */
 
         if (phase == 3) {
 
             if (timer >= FAST_CYCLE_TICKS) {
 
-                timer =
-                        0L;
+                timer = 0L;
 
                 cycle++;
-
-                /*
-                 * Sıralama:
-                 *
-                 * Sabah
-                 *   ↓
-                 * 1 saniye
-                 *   ↓
-                 * Midnight
-                 *   ↓
-                 * 1 saniye
-                 *   ↓
-                 * Sabah
-                 *   ↓
-                 * ...
-                 */
 
                 if (cycle % 2 == 0) {
 
@@ -253,32 +165,30 @@ public class StartTimeWeatherManager {
                 }
 
                 /*
-                 * 10 döngü tamamlandı.
+                 * TAM 10 DEĞİŞİM.
                  */
 
-                if (cycle >= TOTAL_CYCLES * 2) {
+                if (cycle >= TOTAL_CYCLES) {
 
-                    phase =
-                            4;
+                    phase = 4;
 
-                    timer =
-                            0L;
+                    timer = 0L;
 
                     /*
-                     * Sonunda kesin olarak midnight.
+                     * Son durumda kesin Midnight.
                      */
 
                     setMidnight();
                 }
             }
+
+            return;
         }
 
         /*
-         * -----------------------------------------------------
          * PHASE 4
          *
-         * Bitti.
-         * -----------------------------------------------------
+         * Sistem tamamlandı.
          */
 
         if (phase == 4) {
@@ -299,8 +209,7 @@ public class StartTimeWeatherManager {
             return;
         }
 
-        ServerLevel level =
-                server.overworld();
+        ServerLevel level = server.overworld();
 
         level.setWeatherParameters(
                 0,
@@ -323,10 +232,7 @@ public class StartTimeWeatherManager {
             return;
         }
 
-        server.overworld()
-                .setDayTime(
-                        1000L
-                );
+        server.overworld().setDayTime(1000L);
     }
 
     /*
@@ -342,15 +248,12 @@ public class StartTimeWeatherManager {
             return;
         }
 
-        server.overworld()
-                .setDayTime(
-                        12000L
-                );
+        server.overworld().setDayTime(12000L);
     }
 
     /*
      * ---------------------------------------------------------
-     * GECE / 00:00
+     * MIDNIGHT
      * ---------------------------------------------------------
      */
 
@@ -361,10 +264,7 @@ public class StartTimeWeatherManager {
             return;
         }
 
-        server.overworld()
-                .setDayTime(
-                        18000L
-                );
+        server.overworld().setDayTime(18000L);
     }
 
     /*
@@ -375,25 +275,16 @@ public class StartTimeWeatherManager {
 
     private static void stop() {
 
-        running =
-                false;
+        running = false;
 
-        server =
-                null;
+        server = null;
 
-        timer =
-                0L;
+        timer = 0L;
 
-        phase =
-                0;
+        phase = 0;
 
-        cycle =
-                0;
+        cycle = 0;
     }
-
-    /*
-     * Dışarıdan kontrol gerekirse.
-     */
 
     public static boolean isRunning() {
         return running;
