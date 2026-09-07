@@ -1,6 +1,6 @@
 package com.humanoid.horror.client.loading;
 
-import com.humanoid.horror.HumanoidMod;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.system.MemoryUtil;
 import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.base.MediaPlayer;
@@ -42,34 +42,50 @@ public final class ForgeVideoPlayer {
         }
 
         try {
-            Path extractedVideo = extractVideo();
 
-            if (extractedVideo == null) {
+            Path videoPath = extractVideo();
+
+            if (videoPath == null) {
                 finished = true;
                 return;
             }
 
-            start(extractedVideo);
+            start(videoPath);
 
         } catch (Exception e) {
+
             e.printStackTrace();
+
             finished = true;
         }
     }
 
     private static Path extractVideo() throws IOException {
 
-        Path videoPath = HumanoidMod.getVideoPath();
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
-        if (videoPath == null) {
+        if (minecraft == null ||
+                minecraft.gameDirectory == null) {
+
             return null;
         }
+
+        Path videoPath =
+                minecraft.gameDirectory
+                        .toPath()
+                        .resolve("humanoid_forge_loading.mp4");
 
         if (Files.exists(videoPath)) {
             return videoPath;
         }
 
-        Files.createDirectories(videoPath.getParent());
+        Path parent =
+                videoPath.getParent();
+
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
 
         try (InputStream input =
                      ForgeVideoPlayer.class
@@ -97,12 +113,9 @@ public final class ForgeVideoPlayer {
             return;
         }
 
-        if (video == null) {
-            finished = true;
-            return;
-        }
+        if (video == null ||
+                !Files.exists(video)) {
 
-        if (!Files.exists(video)) {
             finished = true;
             return;
         }
@@ -114,22 +127,30 @@ public final class ForgeVideoPlayer {
         videoWidth = 0;
         videoHeight = 0;
 
-        factory = new MediaPlayerFactory();
+        factory =
+                new MediaPlayerFactory();
 
-        player = factory
-                .mediaPlayers()
-                .newEmbeddedMediaPlayer();
+        player =
+                factory
+                        .mediaPlayers()
+                        .newEmbeddedMediaPlayer();
 
         player.events().addMediaPlayerEventListener(
                 new MediaPlayerEventAdapter() {
 
                     @Override
-                    public void finished(MediaPlayer mediaPlayer) {
+                    public void finished(
+                            MediaPlayer mediaPlayer
+                    ) {
+
                         finished = true;
                     }
 
                     @Override
-                    public void error(MediaPlayer mediaPlayer) {
+                    public void error(
+                            MediaPlayer mediaPlayer
+                    ) {
+
                         finished = true;
                     }
                 }
@@ -144,8 +165,11 @@ public final class ForgeVideoPlayer {
                             int sourceHeight
                     ) {
 
-                        videoWidth = sourceWidth;
-                        videoHeight = sourceHeight;
+                        videoWidth =
+                                sourceWidth;
+
+                        videoHeight =
+                                sourceHeight;
 
                         return new RV32BufferFormat(
                                 sourceWidth,
@@ -157,8 +181,9 @@ public final class ForgeVideoPlayer {
                     public void allocatedBuffers(
                             ByteBuffer[] buffers
                     ) {
-                        // VLCJ tarafından native buffer'lar
-                        // burada hazırlanıyor.
+
+                        // VLCJ native buffer'ları
+                        // burada tahsis eder.
                     }
                 };
 
@@ -166,28 +191,59 @@ public final class ForgeVideoPlayer {
                 new RenderCallback() {
 
                     @Override
-                    public void onDisplay(
-                            MediaPlayer mediaPlayer,
-                            ByteBuffer buffer
+                    public void lock(
+                            MediaPlayer mediaPlayer
                     ) {
+
+                        /*
+                         * VLCJ video buffer'ı kilitliyor.
+                         *
+                         * Burada ekstra işlem yapmıyoruz.
+                         */
+                    }
+
+                    @Override
+                    public void display(
+                            MediaPlayer mediaPlayer,
+                            ByteBuffer[] nativeBuffers,
+                            BufferFormat bufferFormat
+                    ) {
+
+                        if (nativeBuffers == null ||
+                                nativeBuffers.length == 0) {
+
+                            return;
+                        }
+
+                        ByteBuffer buffer =
+                                nativeBuffers[0];
 
                         if (buffer == null) {
                             return;
                         }
 
-                        synchronized (ForgeVideoPlayer.class) {
+                        synchronized (
+                                ForgeVideoPlayer.class
+                        ) {
 
-                            int size = buffer.remaining();
+                            int requiredSize =
+                                    buffer.remaining();
 
                             if (frameBuffer == null ||
-                                    frameBuffer.capacity() < size) {
+                                    frameBuffer.capacity()
+                                            < requiredSize) {
 
                                 if (frameBuffer != null) {
-                                    MemoryUtil.memFree(frameBuffer);
+
+                                    MemoryUtil.memFree(
+                                            frameBuffer
+                                    );
                                 }
 
                                 frameBuffer =
-                                        MemoryUtil.memAlloc(size);
+                                        MemoryUtil.memAlloc(
+                                                requiredSize
+                                        );
                             }
 
                             frameBuffer.clear();
@@ -207,22 +263,32 @@ public final class ForgeVideoPlayer {
                     public void unlock(
                             MediaPlayer mediaPlayer
                     ) {
-                        // Buffer kilidi burada bırakılır.
-                        // Frame zaten kendi buffer'ımıza kopyalandı.
+
+                        /*
+                         * Frame display() içinde
+                         * kendi buffer'ımıza kopyalandı.
+                         *
+                         * Bu nedenle burada ekstra işlem
+                         * gerekmiyor.
+                         */
                     }
                 };
 
         player.videoSurface().set(
-                factory.videoSurfaces().newVideoSurface(
-                        bufferFormatCallback,
-                        renderCallback,
-                        true
-                )
+                factory
+                        .videoSurfaces()
+                        .newVideoSurface(
+                                bufferFormatCallback,
+                                renderCallback,
+                                true
+                        )
         );
 
         boolean playing =
                 player.media().play(
-                        video.toAbsolutePath().toString()
+                        video
+                                .toAbsolutePath()
+                                .toString()
                 );
 
         if (!playing) {
@@ -232,17 +298,23 @@ public final class ForgeVideoPlayer {
 
     public static synchronized ByteBuffer getFrameBuffer() {
 
-        if (!frameReady || frameBuffer == null) {
+        if (!frameReady ||
+                frameBuffer == null) {
+
             return null;
         }
 
-        int size = frameBuffer.remaining();
+        int size =
+                frameBuffer.remaining();
 
         if (snapshotBuffer == null ||
                 snapshotBuffer.capacity() < size) {
 
             if (snapshotBuffer != null) {
-                MemoryUtil.memFree(snapshotBuffer);
+
+                MemoryUtil.memFree(
+                        snapshotBuffer
+                );
             }
 
             snapshotBuffer =
@@ -313,7 +385,9 @@ public final class ForgeVideoPlayer {
         if (frameBuffer != null) {
 
             try {
-                MemoryUtil.memFree(frameBuffer);
+                MemoryUtil.memFree(
+                        frameBuffer
+                );
             } catch (Exception ignored) {
             }
 
@@ -323,7 +397,9 @@ public final class ForgeVideoPlayer {
         if (snapshotBuffer != null) {
 
             try {
-                MemoryUtil.memFree(snapshotBuffer);
+                MemoryUtil.memFree(
+                        snapshotBuffer
+                );
             } catch (Exception ignored) {
             }
 
