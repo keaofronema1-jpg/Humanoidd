@@ -42,7 +42,6 @@ public final class ForgeVideoPlayer {
         }
 
         try {
-
             Path videoPath = extractVideo();
 
             if (videoPath == null) {
@@ -53,35 +52,29 @@ public final class ForgeVideoPlayer {
             start(videoPath);
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
             finished = true;
         }
     }
 
     private static Path extractVideo() throws IOException {
 
-        Minecraft minecraft =
-                Minecraft.getInstance();
+        Minecraft minecraft = Minecraft.getInstance();
 
         if (minecraft == null ||
                 minecraft.gameDirectory == null) {
-
             return null;
         }
 
-        Path videoPath =
-                minecraft.gameDirectory
-                        .toPath()
-                        .resolve("humanoid_forge_loading.mp4");
+        Path videoPath = minecraft.gameDirectory
+                .toPath()
+                .resolve("humanoid_forge_loading.mp4");
 
         if (Files.exists(videoPath)) {
             return videoPath;
         }
 
-        Path parent =
-                videoPath.getParent();
+        Path parent = videoPath.getParent();
 
         if (parent != null) {
             Files.createDirectories(parent);
@@ -98,10 +91,7 @@ public final class ForgeVideoPlayer {
                 return null;
             }
 
-            Files.copy(
-                    input,
-                    videoPath
-            );
+            Files.copy(input, videoPath);
         }
 
         return videoPath;
@@ -127,13 +117,11 @@ public final class ForgeVideoPlayer {
         videoWidth = 0;
         videoHeight = 0;
 
-        factory =
-                new MediaPlayerFactory();
+        factory = new MediaPlayerFactory();
 
-        player =
-                factory
-                        .mediaPlayers()
-                        .newEmbeddedMediaPlayer();
+        player = factory
+                .mediaPlayers()
+                .newEmbeddedMediaPlayer();
 
         player.events().addMediaPlayerEventListener(
                 new MediaPlayerEventAdapter() {
@@ -142,7 +130,6 @@ public final class ForgeVideoPlayer {
                     public void finished(
                             MediaPlayer mediaPlayer
                     ) {
-
                         finished = true;
                     }
 
@@ -150,7 +137,6 @@ public final class ForgeVideoPlayer {
                     public void error(
                             MediaPlayer mediaPlayer
                     ) {
-
                         finished = true;
                     }
                 }
@@ -165,11 +151,8 @@ public final class ForgeVideoPlayer {
                             int sourceHeight
                     ) {
 
-                        videoWidth =
-                                sourceWidth;
-
-                        videoHeight =
-                                sourceHeight;
+                        videoWidth = sourceWidth;
+                        videoHeight = sourceHeight;
 
                         return new RV32BufferFormat(
                                 sourceWidth,
@@ -178,12 +161,39 @@ public final class ForgeVideoPlayer {
                     }
 
                     @Override
+                    public void newFormatSize(
+                            int bufferWidth,
+                            int bufferHeight,
+                            int displayWidth,
+                            int displayHeight
+                    ) {
+
+                        /*
+                         * VLC'nin gerçek görüntü boyutunu
+                         * burada takip ediyoruz.
+                         */
+
+                        if (displayWidth > 0) {
+                            videoWidth = displayWidth;
+                        } else {
+                            videoWidth = bufferWidth;
+                        }
+
+                        if (displayHeight > 0) {
+                            videoHeight = displayHeight;
+                        } else {
+                            videoHeight = bufferHeight;
+                        }
+                    }
+
+                    @Override
                     public void allocatedBuffers(
                             ByteBuffer[] buffers
                     ) {
-
-                        // VLCJ native buffer'ları
-                        // burada tahsis eder.
+                        /*
+                         * VLCJ native buffer'larını
+                         * kendisi yönetiyor.
+                         */
                     }
                 };
 
@@ -191,27 +201,16 @@ public final class ForgeVideoPlayer {
                 new RenderCallback() {
 
                     @Override
-                    public void lock(
-                            MediaPlayer mediaPlayer
-                    ) {
-
-                        /*
-                         * VLCJ video buffer'ı kilitliyor.
-                         *
-                         * Burada ekstra işlem yapmıyoruz.
-                         */
-                    }
-
-                    @Override
                     public void display(
                             MediaPlayer mediaPlayer,
                             ByteBuffer[] nativeBuffers,
-                            BufferFormat bufferFormat
+                            BufferFormat bufferFormat,
+                            int displayWidth,
+                            int displayHeight
                     ) {
 
                         if (nativeBuffers == null ||
                                 nativeBuffers.length == 0) {
-
                             return;
                         }
 
@@ -220,6 +219,14 @@ public final class ForgeVideoPlayer {
 
                         if (buffer == null) {
                             return;
+                        }
+
+                        if (displayWidth > 0) {
+                            videoWidth = displayWidth;
+                        }
+
+                        if (displayHeight > 0) {
+                            videoHeight = displayHeight;
                         }
 
                         synchronized (
@@ -234,7 +241,6 @@ public final class ForgeVideoPlayer {
                                             < requiredSize) {
 
                                 if (frameBuffer != null) {
-
                                     MemoryUtil.memFree(
                                             frameBuffer
                                     );
@@ -263,13 +269,9 @@ public final class ForgeVideoPlayer {
                     public void unlock(
                             MediaPlayer mediaPlayer
                     ) {
-
                         /*
-                         * Frame display() içinde
-                         * kendi buffer'ımıza kopyalandı.
-                         *
-                         * Bu nedenle burada ekstra işlem
-                         * gerekmiyor.
+                         * VLCJ'nin kilitlediği native
+                         * video buffer burada serbest bırakılır.
                          */
                     }
                 };
@@ -286,9 +288,7 @@ public final class ForgeVideoPlayer {
 
         boolean playing =
                 player.media().play(
-                        video
-                                .toAbsolutePath()
-                                .toString()
+                        video.toAbsolutePath().toString()
                 );
 
         if (!playing) {
@@ -300,7 +300,6 @@ public final class ForgeVideoPlayer {
 
         if (!frameReady ||
                 frameBuffer == null) {
-
             return null;
         }
 
@@ -311,7 +310,6 @@ public final class ForgeVideoPlayer {
                 snapshotBuffer.capacity() < size) {
 
             if (snapshotBuffer != null) {
-
                 MemoryUtil.memFree(
                         snapshotBuffer
                 );
