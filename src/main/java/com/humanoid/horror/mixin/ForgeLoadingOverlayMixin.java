@@ -2,17 +2,15 @@ package com.humanoid.horror.mixin;
 
 import com.humanoid.horror.client.loading.ForgeVideoPlayer;
 import com.humanoid.horror.client.loading.ForgeVideoRenderer;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
+
 import net.minecraft.client.gui.GuiGraphics;
+
 import net.minecraftforge.client.loading.ForgeLoadingOverlay;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @Mixin(ForgeLoadingOverlay.class)
 public class ForgeLoadingOverlayMixin {
@@ -33,102 +31,43 @@ public class ForgeLoadingOverlayMixin {
             CallbackInfo ci
     ) {
 
-        Minecraft minecraft = Minecraft.getInstance();
+        int width =
+                guiGraphics.guiWidth();
 
-        int width = guiGraphics.guiWidth();
-        int height = guiGraphics.guiHeight();
+        int height =
+                guiGraphics.guiHeight();
 
         /*
-         * Video daha önce başlatılmadıysa başlat.
+         * Videoyu yalnızca bir kere başlat.
          */
         if (!humanoid$videoStarted) {
 
             humanoid$videoStarted = true;
 
-            try {
-
-                Path videoPath =
-                        minecraft.gameDirectory
-                                .toPath()
-                                .resolve("assets")
-                                .resolve("humanoid")
-                                .resolve("video")
-                                .resolve("forge.mp4");
-
-                /*
-                 * Öncelikle gerçek dosya yolunu kontrol ediyoruz.
-                 */
-                if (Files.exists(videoPath)) {
-
-                    ForgeVideoPlayer.start(videoPath);
-
-                } else {
-
-                    /*
-                     * Resource içerisindeki forge.mp4'ü
-                     * geçici dosyaya çıkar.
-                     */
-                    Path tempVideo =
-                            minecraft.gameDirectory
-                                    .toPath()
-                                    .resolve("humanoid_forge_loading.mp4");
-
-                    try (var input =
-                                 ForgeLoadingOverlayMixin.class
-                                         .getResourceAsStream(
-                                                 "/assets/humanoid/video/forge.mp4"
-                                         )) {
-
-                        if (input != null) {
-
-                            Files.copy(
-                                    input,
-                                    tempVideo,
-                                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                            );
-
-                            ForgeVideoPlayer.start(tempVideo);
-
-                        } else {
-
-                            humanoid$videoFinished = true;
-                        }
-                    }
-                }
-
-            } catch (Exception e) {
-
-                /*
-                 * Video açılamazsa Minecraft'ın
-                 * loading sürecini kilitleme.
-                 */
-                humanoid$videoFinished = true;
-            }
+            ForgeVideoPlayer.startFromResource();
         }
 
         /*
-         * Video tamamlandıysa artık Forge'un kendi
-         * render metodunun çalışmasına izin veriyoruz.
+         * Video bittiyse artık Forge'un kendi
+         * loading ekranına müdahale etme.
          */
         if (humanoid$videoFinished ||
                 ForgeVideoPlayer.isFinished()) {
 
             humanoid$videoFinished = true;
 
+            ForgeVideoPlayer.stop();
+
             try {
                 ForgeVideoRenderer.release();
             } catch (Exception ignored) {
             }
 
-            /*
-             * Forge normal loading ekranına geri dönsün.
-             */
             return;
         }
 
         /*
-         * Videonun ilk frame'i henüz gelmediyse
-         * siyah ekran göster.
+         * İlk frame gelene kadar siyah ekran.
          */
         if (!ForgeVideoPlayer.hasFrame()) {
 
@@ -145,7 +84,7 @@ public class ForgeLoadingOverlayMixin {
         }
 
         /*
-         * VLCJ'den gelen frame'i al.
+         * Son frame'i al.
          */
         var frame =
                 ForgeVideoPlayer.getFrameBuffer();
@@ -179,8 +118,8 @@ public class ForgeLoadingOverlayMixin {
         );
 
         /*
-         * Forge'un anvil / memory / progress bar
-         * ekranını göstermesini engelle.
+         * Forge'un varsayılan anvil / memory /
+         * progress ekranını çizmesini engelle.
          */
         ci.cancel();
     }
