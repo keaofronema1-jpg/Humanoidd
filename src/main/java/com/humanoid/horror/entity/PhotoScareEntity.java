@@ -8,7 +8,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -20,6 +22,14 @@ public class PhotoScareEntity extends Entity {
 
     private static final int BLINDNESS_TICKS = 100;
 
+    /*
+     * Entity boyutu.
+     *
+     * 1.0 = normal
+     * 1.25 = %25 daha büyük
+     */
+    private static final float ENTITY_SCALE = 1.25F;
+
     private boolean triggered = false;
 
     public PhotoScareEntity(
@@ -29,6 +39,18 @@ public class PhotoScareEntity extends Entity {
         super(type, level);
 
         this.noPhysics = true;
+    }
+
+    // =========================================================
+    // ENTITY SIZE
+    // =========================================================
+
+    @Override
+    public EntityDimensions getDimensions(
+            Pose pose
+    ) {
+        return super.getDimensions(pose)
+                .scale(ENTITY_SCALE);
     }
 
     @Override
@@ -104,11 +126,10 @@ public class PhotoScareEntity extends Entity {
         }
     }
 
-    /*
-     * =========================================================
-     * HITBOX BAKIŞ KONTROLÜ
-     * =========================================================
-     */
+    // =========================================================
+    // HITBOX BAKIŞ KONTROLÜ
+    // =========================================================
+
     private boolean isPlayerLookingAtHitbox(
             ServerPlayer player
     ) {
@@ -125,10 +146,8 @@ public class PhotoScareEntity extends Entity {
                 );
 
         /*
-         * Entity'nin mevcut Minecraft hitbox'ını kullanıyoruz.
-         *
-         * getBoundingBox() override edilmiyor çünkü
-         * Entity.getBoundingBox() Forge 1.20.1'de final.
+         * Artık %25 daha büyük entity boyutuna göre
+         * oluşturulan hitbox kullanılır.
          */
         AABB hitbox = getBoundingBox();
 
@@ -138,11 +157,10 @@ public class PhotoScareEntity extends Entity {
         ).isPresent();
     }
 
-    /*
-     * =========================================================
-     * SCARE
-     * =========================================================
-     */
+    // =========================================================
+    // SCARE
+    // =========================================================
+
     private void triggerScare(
             ServerPlayer player
     ) {
@@ -188,11 +206,9 @@ public class PhotoScareEntity extends Entity {
         discard();
     }
 
-    /*
-     * =========================================================
-     * ENTITY DAVRANIŞI
-     * =========================================================
-     */
+    // =========================================================
+    // ENTITY DAVRANIŞI
+    // =========================================================
 
     @Override
     public boolean isPickable() {
