@@ -2,6 +2,7 @@ package com.humanoid.horror.entity.ai;
 
 import com.humanoid.horror.HumanoidMod;
 import com.humanoid.horror.entity.Creature1;
+import com.humanoid.horror.entity.Creature1HUDState;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,14 +25,9 @@ public class Creature1AI extends Goal {
     // =========================================================
 
     /*
-     * Creature1 her zaman aynı hızda koşar.
+     * Her zaman aynı hız.
      *
-     * Oyuncu yürüyüş hızına göre:
-     *
-     * 1.0 = normal
-     * 1.05 = +0.05
-     *
-     * Bu değer hiçbir zaman birikmez.
+     * Sayaç düştükçe hız artmayacak.
      */
     private static final double CREATURE_SPEED = 1.05D;
 
@@ -39,10 +35,6 @@ public class Creature1AI extends Goal {
     // MESAFE TOLERANSI
     // =========================================================
 
-    /*
-     * Creature1 hedef mesafeye ulaştığında
-     * gereksiz ileri-geri hareket etmesin.
-     */
     private static final double DISTANCE_TOLERANCE = 0.75D;
 
     // =========================================================
@@ -74,9 +66,6 @@ public class Creature1AI extends Goal {
     @Override
     public boolean canUse() {
 
-        /*
-         * /start verilmeden AI çalışmasın.
-         */
         if (!HumanoidMod.isStartTriggered) {
             return false;
         }
@@ -91,9 +80,6 @@ public class Creature1AI extends Goal {
     @Override
     public boolean canContinueToUse() {
 
-        /*
-         * /start sistemi kapanırsa AI hemen dursun.
-         */
         if (!HumanoidMod.isStartTriggered) {
             return false;
         }
@@ -132,9 +118,10 @@ public class Creature1AI extends Goal {
     @Override
     public void tick() {
 
-        /*
-         * /start yoksa hiçbir AI işlemi yapma.
-         */
+        // =====================================================
+        // /START KONTROLÜ
+        // =====================================================
+
         if (!HumanoidMod.isStartTriggered) {
 
             this.entity
@@ -164,29 +151,17 @@ public class Creature1AI extends Goal {
                 this.entity.level();
 
         // =====================================================
-        // HUD / ORTAK SAYAÇTAN HEDEF MESAFEYİ AL
+        // ORTAK HUD SAYACINI OKU
         // =====================================================
 
         /*
-         * BU DEĞER GERÇEK MESAFE DEĞİL.
+         * Artık Creature1 kendi gerçek mesafesini
+         * HUD sayacının üzerine yazmıyor.
          *
-         * Creature1'in HUD/server sistemindeki
-         * ortak hedef mesafesidir.
-         *
-         * Örneğin:
-         *
-         * 500 -> 500 blok
-         * 200 -> 200 blok
-         * 90  -> 90 blok
-         * 89  -> 89 blok
-         * ...
-         * 0   -> oyuncuya ulaşma
-         *
-         * Burada artık gerçek mesafeyi bu değerin
-         * üzerine YAZMIYORUZ.
+         * AI doğrudan ortak state'i okuyor.
          */
         int targetDistance =
-                this.entity.getTargetDistance();
+                Creature1HUDState.getDistance();
 
         if (targetDistance < 0) {
             targetDistance = 0;
@@ -200,28 +175,21 @@ public class Creature1AI extends Goal {
                 this.entity.distanceTo(target);
 
         // =====================================================
-        // HEDEF MESAFEYE GÖRE HAREKET
+        // HEDEF MESAFEYE DOĞRU KOŞ
         // =====================================================
 
         /*
-         * Creature1'in gerçek mesafesi,
-         * sayaçta belirtilen mesafeden büyükse
-         * oyuncuya doğru sürekli koş.
-         *
          * Örnek:
          *
-         * Sayaç = 90
-         * Gerçek mesafe = 120
-         * -> koş
+         * State = 90
+         * Creature1 = 120 blok uzakta
+         * -> 1.05 hızla oyuncuya doğru koşar.
          *
-         * Gerçek mesafe = 90
-         * -> dur
+         * Creature1 = 90 blok uzakta
+         * -> durur.
          *
-         * Sayaç 89 olduğunda:
-         *
-         * Gerçek mesafe = 90
-         * Hedef = 89
-         * -> tekrar koş
+         * State = 89 olduğunda
+         * -> tekrar 89'a doğru koşar.
          */
         if (realDistance >
                 targetDistance + DISTANCE_TOLERANCE) {
@@ -235,12 +203,6 @@ public class Creature1AI extends Goal {
 
         } else {
 
-            /*
-             * Hedef mesafeye ulaştı.
-             *
-             * Sayaç bir sonraki değere düşene kadar
-             * gereksiz şekilde oyuncunun üstüne gitme.
-             */
             this.entity
                     .getNavigation()
                     .stop();
@@ -264,9 +226,6 @@ public class Creature1AI extends Goal {
 
         breakBlockCooldown++;
 
-        /*
-         * Her 5 tick'te bir önünü kontrol et.
-         */
         if (breakBlockCooldown >= 5) {
 
             breakBlockCooldown = 0;
@@ -277,8 +236,8 @@ public class Creature1AI extends Goal {
         /*
          * Jumpscare burada yapılmıyor.
          *
-         * Creature1.tick() içerisinde mevcut
-         * distance <= 2.0D kontrolü çalışmaya devam eder.
+         * Creature1.tick() içindeki mevcut
+         * jumpscare kontrolü çalışmaya devam eder.
          */
     }
 
@@ -297,15 +256,6 @@ public class Creature1AI extends Goal {
                                 this.entity.getDirection()
                         );
 
-        /*
-         * Creature1'in önündeki yaklaşık
-         * 4 blok yüksekliğindeki alan.
-         *
-         * basePos       = ayak
-         * basePos.above = gövde
-         * above(2)      = kafa
-         * above(3)      = kafa üstü
-         */
         BlockPos[] tunnelPositions =
                 new BlockPos[]{
                         basePos,
@@ -316,20 +266,10 @@ public class Creature1AI extends Goal {
 
         for (BlockPos pos : tunnelPositions) {
 
-            /*
-             * Zaten boşsa hiçbir şey yapma.
-             */
             if (level.isEmptyBlock(pos)) {
                 continue;
             }
 
-            /*
-             * Önündeki bloğu AIR yap.
-             *
-             * Mevcut davranış korunuyor:
-             * taş, toprak, obsidyen, bedrock vb.
-             * bloklar temizlenebilir.
-             */
             level.setBlock(
                     pos,
                     Blocks.AIR.defaultBlockState(),
