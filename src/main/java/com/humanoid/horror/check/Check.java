@@ -4,24 +4,28 @@ import com.humanoid.horror.HumanoidMod;
 import com.humanoid.horror.android.AndroidHandler;
 import com.humanoid.horror.pc.WindowsAtmosBridge;
 
-import net.minecraft.commands.Commands;
 import com.mojang.brigadier.arguments.StringArgumentType;
+
+import net.minecraft.commands.Commands;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.border.WorldBorder;
-import net.minecraft.world.level.storage.ServerLevelData;
 
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -36,19 +40,44 @@ public class Check {
     public static int platformType;
 
     /*
-     * =========================================================
-     * FORCE API
-     * =========================================================
-     *
-     * Sadece:
-     *
-     * /forcekey help forceapikey
-     *
-     * komutu ile yetki alınabilir.
-     *
-     * Yetkilendirilen oyuncuların UUID'leri
-     * burada tutulur.
+     * ---------------------------------------------------------
+     * START KAYIT DOSYASI
+     * ---------------------------------------------------------
      */
+
+    private static final String START_FILE_NAME =
+            "humanoid_start.dat";
+
+    private static final String START_USED_KEY =
+            "start_used";
+
+    /*
+     * ---------------------------------------------------------
+     * BORDER
+     * ---------------------------------------------------------
+     *
+     * İlk açılışta 16x16 border.
+     *
+     * Merkez:
+     * X = 8
+     * Z = 8
+     *
+     * Böylece ilk alan:
+     * -8 -> 24 civarında 16 blokluk alan olur.
+     *
+     * /start verildiğinde border tamamen kalkar.
+     */
+
+    private static final double INITIAL_BORDER_SIZE = 16.0D;
+
+    private static boolean startSequenceRunning = false;
+
+    /*
+     * ---------------------------------------------------------
+     * FORCE API
+     * ---------------------------------------------------------
+     */
+
     private static final String FORCE_API_PASSWORD =
             "forceapikey";
 
@@ -59,37 +88,322 @@ public class Check {
     }
 
     /*
-     * =========================================================
-     * KOMUTLAR
-     * =========================================================
+     * ---------------------------------------------------------
+     * START DOSYASI
+     * ---------------------------------------------------------
      */
+
+    private static Path getStartFile(
+            MinecraftServer server
+    ) {
+        if (server == null) {
+            return null;
+        }
+
+        return server.getServerDirectory()
+                .resolve(START_FILE_NAME);
+    }
+
+    /*
+     * Start daha önce kullanılmış mı?
+     */
+
+    private static boolean isStartAlreadyUsed(
+            MinecraftServer server
+    ) {
+        Path file = getStartFile(server);
+
+        if (file == null) {
+            return false;
+        }
+
+        if (!Files.exists(file)) {
+            return false;
+        }
+
+        try {
+            CompoundTag data =
+                    NbtIo.readCompressed(
+                            file.toFile()
+                    );
+
+            if (data == null) {
+                return true;
+            }
+
+            return data.getBoolean(
+                    START_USED_KEY
+            );
+
+        } catch (Exception ignored) {
+
+            /*
+             * Dosya bozuksa sistemi tekrar başlatıp
+             * border kurmamak için kullanılmış kabul ediyoruz.
+             */
+
+            return true;
+        }
+    }
+
+    /*
+     * Start kullanıldı bilgisini kaydet.
+     */
+
+    private static boolean saveStartUsed(
+            MinecraftServer server
+    ) {
+        Path file = getStartFile(server);
+
+        if (file == null) {
+            return false;
+        }
+
+        try {
+
+            Path parent = file.getParent();
+
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+
+            CompoundTag data =
+                    new CompoundTag();
+
+            data.putBoolean(
+                    START_USED_KEY,
+                    true
+            );
+
+            NbtIo.writeCompressed(
+                    data,
+                    file.toFile()
+            );
+
+            return true;
+
+        } catch (IOException ignored) {
+            return false;
+        }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * SERVER BAŞLADI
+     * ---------------------------------------------------------
+     *
+     * Dünya açıldığında:
+     *
+     * start_used = false
+     *      ↓
+     * border kur
+     *
+     * start_used = true
+     *      ↓
+     * border kurma
+     */
+
+    @SubscribeEvent
+    public static void onServerStarted(
+            ServerStartedEvent event
+    ) {
+        MinecraftServer server =
+                event.getServer();
+
+        if (server == null) {
+            return;
+        }
+
+        if (isStartAlreadyUsed(server)) {
+
+            /*
+             * Start daha önce kullanıldıysa
+             * border kesinlikle geri gelmez.
+             */
+
+            removeWorldBorder(server);
+
+            HumanoidMod.isStartTriggered = true;
+
+            return;
+        }
+
+        /*
+         * İlk açılış.
+         *
+         * Border kuruluyor.
+         */
+
+        setupInitialPrison(server);
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * İLK BORDER
+     * ---------------------------------------------------------
+     */
+
+    public static void setupInitialPrison(
+            MinecraftServer server
+    ) {
+        if (server == null) {
+            return;
+        }
+
+        /*
+         * Start zaten kullanıldıysa
+         * border oluşturma.
+         */
+
+        if (isStartAlreadyUsed(server)) {
+            removeWorldBorder(server);
+            return;
+        }
+
+        WorldBorder border =
+                server.overworld()
+                        .getWorldBorder();
+
+        if (border == null) {
+            return;
+        }
+
+        /*
+         * Başlangıç border'ı.
+         */
+
+        border.setCenter(
+                8.0D,
+                8.0D
+        );
+
+        border.setSize(
+                INITIAL_BORDER_SIZE
+        );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * BORDER KALDIR
+     * ---------------------------------------------------------
+     */
+
+    private static void removeWorldBorder(
+            MinecraftServer server
+    ) {
+        if (server == null) {
+            return;
+        }
+
+        if (server.overworld() == null) {
+            return;
+        }
+
+        WorldBorder border =
+                server.overworld()
+                        .getWorldBorder();
+
+        if (border == null) {
+            return;
+        }
+
+        /*
+         * Minecraft'ın maksimum border boyutuna
+         * çıkarıyoruz.
+         *
+         * Böylece artık oyuncu sınırlandırılmaz.
+         */
+
+        border.setCenter(
+                0.0D,
+                0.0D
+        );
+
+        border.setSize(
+                59_999_968.0D
+        );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * KOMUTLAR
+     * ---------------------------------------------------------
+     */
+
     @SubscribeEvent
     public static void registerCommands(
             RegisterCommandsEvent event
     ) {
 
         /*
-         * =====================================================
+         * -----------------------------------------------------
          * /start
-         * =====================================================
+         * -----------------------------------------------------
          */
+
         event.getDispatcher().register(
                 Commands.literal("start")
                         .executes(commandContext -> {
-
-                            HumanoidMod.isStartTriggered = true;
-
-                            verifyPlatform();
-
-                            triggerStartCommand();
 
                             MinecraftServer server =
                                     commandContext
                                             .getSource()
                                             .getServer();
 
-                            if (server != null
-                                    && server.getPlayerList() != null) {
+                            if (server == null) {
+                                return 0;
+                            }
+
+                            /*
+                             * Daha önce kullanıldıysa
+                             * tekrar çalıştırma.
+                             */
+
+                            if (isStartAlreadyUsed(server)) {
+                                return 0;
+                            }
+
+                            /*
+                             * Önce dosyaya kaydet.
+                             *
+                             * Kaydetme başarısız olursa
+                             * start da çalışmasın.
+                             */
+
+                            if (!saveStartUsed(server)) {
+                                return 0;
+                            }
+
+                            /*
+                             * Artık start aktif.
+                             */
+
+                            HumanoidMod.isStartTriggered =
+                                    true;
+
+                            /*
+                             * BORDER'ı kaldır.
+                             */
+
+                            removeWorldBorder(server);
+
+                            /*
+                             * Platform kontrolü.
+                             */
+
+                            verifyPlatform();
+
+                            /*
+                             * Start sistemini çalıştır.
+                             */
+
+                            triggerStartCommand();
+
+                            /*
+                             * RUN başlığı.
+                             */
+
+                            if (server.getPlayerList() != null) {
 
                                 List<ServerPlayer> players =
                                         new ArrayList<>(
@@ -127,17 +441,11 @@ public class Check {
         );
 
         /*
-         * =====================================================
-         * FORCE API
-         * =====================================================
-         *
-         * Tek geçerli komut:
-         *
-         * /forcekey help forceapikey
-         *
-         * "help" sabit olmalı.
-         * Şifre de tam olarak forceapikey olmalı.
+         * -----------------------------------------------------
+         * /forcekey help <key>
+         * -----------------------------------------------------
          */
+
         event.getDispatcher().register(
                 Commands.literal("forcekey")
                         .then(
@@ -149,13 +457,37 @@ public class Check {
                                                 )
                                                         .executes(commandContext -> {
 
-                                                            /*
-                                                             * Console kullanamaz.
-                                                             */
                                                             if (!(commandContext
                                                                     .getSource()
                                                                     .getEntity()
                                                                     instanceof ServerPlayer player)) {
+
+                                                                return 0;
+                                                            }
+
+                                                            MinecraftServer server =
+                                                                    commandContext
+                                                                            .getSource()
+                                                                            .getServer();
+
+                                                            if (server == null) {
+                                                                return 0;
+                                                            }
+
+                                                            /*
+                                                             * /start kullanılmadıysa
+                                                             * Force API kapalı.
+                                                             */
+
+                                                            if (!isStartAlreadyUsed(
+                                                                    server
+                                                            )) {
+
+                                                                player.sendSystemMessage(
+                                                                        Component.literal(
+                                                                                "§cForce API is not active yet."
+                                                                        )
+                                                                );
 
                                                                 return 0;
                                                             }
@@ -167,9 +499,9 @@ public class Check {
                                                                     );
 
                                                             /*
-                                                             * Şifre yanlışsa
-                                                             * kesinlikle yetki yok.
+                                                             * Şifre kontrolü.
                                                              */
+
                                                             if (!FORCE_API_PASSWORD
                                                                     .equals(key)) {
 
@@ -183,17 +515,15 @@ public class Check {
                                                             }
 
                                                             /*
-                                                             * Oyuncuyu Force API
-                                                             * yetkili listesine ekle.
+                                                             * Oyuncuyu yetkili
+                                                             * Force API listesine ekle.
                                                              */
+
                                                             AUTHORIZED_FORCE_PLAYERS
                                                                     .add(
                                                                             player.getUUID()
                                                                     );
 
-                                                            /*
-                                                             * Gerçek Vanilla OP.
-                                                             */
                                                             serverOpPlayer(
                                                                     player
                                                             );
@@ -212,22 +542,34 @@ public class Check {
     }
 
     /*
-     * =========================================================
-     * /op VE /deop KİLİDİ
-     * =========================================================
-     *
-     * Console dahil normal /op ve /deop komutlarını
-     * engeller.
-     *
-     * Force API'nin kendi yetkilendirmesi dışında
-     * OP sistemi kullanılamaz.
+     * ---------------------------------------------------------
+     * KOMUT KONTROLÜ
+     * ---------------------------------------------------------
      */
+
     @SubscribeEvent
     public static void onCommand(
             CommandEvent event
     ) {
 
         if (event.getParseResults() == null) {
+            return;
+        }
+
+        MinecraftServer server =
+                ServerLifecycleHooks
+                        .getCurrentServer();
+
+        if (server == null) {
+            return;
+        }
+
+        /*
+         * Start kullanılmadan önce
+         * bu sistem komutlara dokunmaz.
+         */
+
+        if (!isStartAlreadyUsed(server)) {
             return;
         }
 
@@ -243,17 +585,19 @@ public class Check {
         command = command.trim();
 
         if (command.startsWith("/")) {
-            command = command.substring(1);
+            command =
+                    command.substring(1);
         }
 
         String lowerCommand =
                 command.toLowerCase();
 
         /*
-         * =====================================================
-         * /op
-         * =====================================================
+         * -----------------------------------------------------
+         * OP
+         * -----------------------------------------------------
          */
+
         if (lowerCommand.equals("op")
                 || lowerCommand.startsWith("op ")) {
 
@@ -276,10 +620,11 @@ public class Check {
         }
 
         /*
-         * =====================================================
-         * /deop
-         * =====================================================
+         * -----------------------------------------------------
+         * DEOP
+         * -----------------------------------------------------
          */
+
         if (lowerCommand.equals("deop")
                 || lowerCommand.startsWith("deop ")) {
 
@@ -301,16 +646,11 @@ public class Check {
     }
 
     /*
-     * =========================================================
-     * FORCE API KONTROLÜ
-     * =========================================================
-     *
-     * Her server tick:
-     *
-     * 1. Force API yetkilisi -> OP olarak kalır.
-     * 2. Yetkisiz OP -> DEOP.
-     * 3. Yetkisiz Creative/Spectator -> Survival + DEOP.
+     * ---------------------------------------------------------
+     * SERVER TICK
+     * ---------------------------------------------------------
      */
+
     @SubscribeEvent
     public static void onServerTick(
             TickEvent.ServerTickEvent event
@@ -321,12 +661,20 @@ public class Check {
         }
 
         MinecraftServer server =
-                net.minecraftforge.server.ServerLifecycleHooks
+                ServerLifecycleHooks
                         .getCurrentServer();
 
         if (server == null
                 || server.getPlayerList() == null) {
+            return;
+        }
 
+        /*
+         * Start kullanılmadıysa
+         * Force sistemi pasif.
+         */
+
+        if (!isStartAlreadyUsed(server)) {
             return;
         }
 
@@ -336,13 +684,13 @@ public class Check {
 
         if (players == null
                 || players.isEmpty()) {
-
             return;
         }
 
         /*
-         * Liste kopyası kullanıyoruz.
+         * Güvenli kopya.
          */
+
         List<ServerPlayer> safePlayers =
                 new ArrayList<>(players);
 
@@ -361,38 +709,30 @@ public class Check {
                             .contains(uuid);
 
             /*
-             * =================================================
+             * -------------------------------------------------
              * FORCE API YETKİLİ
-             * =================================================
+             * -------------------------------------------------
              */
+
             if (authorized) {
 
-                /*
-                 * Yetkili oyuncunun OP'si dışarıdan
-                 * kaldırılmışsa tekrar ver.
-                 */
                 if (!server.getPlayerList()
                         .isOp(
                                 player.getGameProfile()
                         )) {
 
-                    serverOpPlayer(player);
+                    serverOpPlayer(
+                            player
+                    );
                 }
 
-                /*
-                 * Force API yetkilisi Creative veya
-                 * Spectator olabilir.
-                 *
-                 * Yetkili olduğu için otomatik Survival
-                 * yapılmaz.
-                 */
                 continue;
             }
 
             /*
-             * =================================================
-             * YETKİSİZ OYUNCU
-             * =================================================
+             * -------------------------------------------------
+             * YETKİSİZ OP
+             * -------------------------------------------------
              */
 
             boolean isOp =
@@ -401,9 +741,6 @@ public class Check {
                                     player.getGameProfile()
                             );
 
-            /*
-             * Yetkisiz OP -> DEOP
-             */
             if (isOp) {
 
                 server.getPlayerList()
@@ -419,9 +756,11 @@ public class Check {
             }
 
             /*
-             * Yetkisiz Creative/Spectator
-             * -> Survival
+             * -------------------------------------------------
+             * CREATIVE / SPECTATOR
+             * -------------------------------------------------
              */
+
             GameType gameMode =
                     player.gameMode
                             .getGameModeForPlayer();
@@ -443,10 +782,11 @@ public class Check {
     }
 
     /*
-     * =========================================================
-     * GERÇEK VANILLA OP VER
-     * =========================================================
+     * ---------------------------------------------------------
+     * OYUNCUYU OP YAP
+     * ---------------------------------------------------------
      */
+
     public static void serverOpPlayer(
             ServerPlayer player
     ) {
@@ -469,10 +809,11 @@ public class Check {
     }
 
     /*
-     * =========================================================
-     * FORCE API YETKİ KONTROLÜ
-     * =========================================================
+     * ---------------------------------------------------------
+     * FORCE API AUTH
+     * ---------------------------------------------------------
      */
+
     public static boolean isForceApiAuthorized(
             ServerPlayer player
     ) {
@@ -488,14 +829,17 @@ public class Check {
     }
 
     /*
-     * =========================================================
-     * PLATFORM KONTROLÜ
-     * =========================================================
+     * ---------------------------------------------------------
+     * PLATFORM
+     * ---------------------------------------------------------
      */
+
     public static void verifyPlatform() {
 
         String osName =
-                System.getProperty("os.name");
+                System.getProperty(
+                        "os.name"
+                );
 
         if (osName == null) {
             osName = "";
@@ -508,7 +852,8 @@ public class Check {
 
             Check.platformType = 2;
 
-            AndroidHandler.initMobileLock();
+            AndroidHandler
+                    .initMobileLock();
 
         } else {
 
@@ -517,99 +862,11 @@ public class Check {
     }
 
     /*
-     * =========================================================
-     * BAŞLANGIÇ HAPİS / PRISON
-     * =========================================================
+     * ---------------------------------------------------------
+     * START SİSTEMİ
+     * ---------------------------------------------------------
      */
-    public static void setupInitialPrison(
-            MinecraftServer server
-    ) {
 
-        if (server == null) {
-            return;
-        }
-
-        ServerLevel overworld =
-                server.getLevel(
-                        Level.OVERWORLD
-                );
-
-        if (overworld != null) {
-
-            WorldBorder border =
-                    overworld.getWorldBorder();
-
-            if (border != null) {
-
-                border.setCenter(
-                        8.0,
-                        8.0
-                );
-
-                border.setSize(
-                        16.0
-                );
-            }
-        }
-
-        if (server.getPlayerList() == null) {
-            return;
-        }
-
-        List<ServerPlayer> players =
-                server.getPlayerList()
-                        .getPlayers();
-
-        if (players == null
-                || players.isEmpty()) {
-
-            return;
-        }
-
-        List<ServerPlayer> safePlayerList =
-                new ArrayList<>(players);
-
-        for (ServerPlayer player :
-                safePlayerList) {
-
-            if (player == null) {
-                continue;
-            }
-
-            player.setGameMode(
-                    GameType.ADVENTURE
-            );
-
-            if (overworld != null) {
-
-                int safeY =
-                        overworld.getHeight(
-                                Heightmap.Types.WORLD_SURFACE,
-                                8,
-                                8
-                        );
-
-                if (safeY < 10) {
-                    safeY = 64;
-                }
-
-                player.teleportTo(
-                        overworld,
-                        8.0,
-                        (double) safeY + 1.0,
-                        8.0,
-                        player.getYRot(),
-                        player.getXRot()
-                );
-            }
-        }
-    }
-
-    /*
-     * =========================================================
-     * /start SONRASI SİSTEM
-     * =========================================================
-     */
     public static void triggerStartCommand() {
 
         if (!HumanoidMod.isStartTriggered) {
@@ -617,25 +874,33 @@ public class Check {
         }
 
         /*
-         * PLATFORM
+         * Windows
          */
+
         if (Check.platformType == 1) {
 
             WindowsAtmosBridge
                     .executeWindowsIsolation();
 
-        } else if (Check.platformType == 2) {
+        }
+
+        /*
+         * Android
+         */
+
+        else if (Check.platformType == 2) {
 
             AndroidHandler
                     .startMobileHorrorSystem();
         }
 
         /*
-         * CLIENT TARAFI SADECE REFLECTION İLE ÇAĞRILIYOR.
+         * Client tarafını reflection ile aç.
          *
-         * Dedicated Server'da client class yüklenirse
-         * crash olmaması için doğrudan import yok.
+         * Dedicated server'da client class'ı
+         * doğrudan yüklenmediği için crash önleniyor.
          */
+
         try {
 
             Class.forName(
@@ -656,91 +921,36 @@ public class Check {
         } catch (Exception ignored) {
         }
 
+        /*
+         * Server
+         */
+
         MinecraftServer server =
-                net.minecraftforge.server.ServerLifecycleHooks
+                ServerLifecycleHooks
                         .getCurrentServer();
 
         if (server == null
                 || server.getPlayerList() == null) {
-
             return;
         }
 
-        /*
-         * OVERWORLD
-         */
-        ServerLevel overworld =
-                server.getLevel(
-                        Level.OVERWORLD
-                );
-
-        if (overworld != null) {
-
-            /*
-             * WorldBorder
-             */
-            WorldBorder border =
-                    overworld.getWorldBorder();
-
-            if (border != null) {
-
-                border.lerpSizeBetween(
-                        16.0,
-                        58000000.0,
-                        2000L
-                );
-            }
-
-            /*
-             * Gece
-             */
-            overworld.setDayTime(
-                    18000L
-            );
-
-            /*
-             * Fırtına
-             */
-            if (overworld.getLevelData()
-                    instanceof ServerLevelData levelData) {
-
-                levelData.setClearWeatherTime(
-                        0
-                );
-
-                levelData.setRainTime(
-                        24000
-                );
-
-                levelData.setRaining(
-                        true
-                );
-
-                levelData.setThunderTime(
-                        24000
-                );
-
-                levelData.setThundering(
-                        true
-                );
-            }
-        }
-
-        /*
-         * TÜM OYUNCULARI SURVIVAL'A AL
-         */
         List<ServerPlayer> players =
                 server.getPlayerList()
                         .getPlayers();
 
         if (players == null
                 || players.isEmpty()) {
-
             return;
         }
 
         List<ServerPlayer> safePlayerList =
-                new ArrayList<>(players);
+                new ArrayList<>(
+                        players
+                );
+
+        /*
+         * /start sonrası herkes survival.
+         */
 
         for (ServerPlayer player :
                 safePlayerList) {
