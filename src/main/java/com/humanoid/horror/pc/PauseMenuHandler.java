@@ -31,69 +31,83 @@ public class PauseMenuHandler {
         }
 
         /*
-         * children() listesinin kendisi üzerinde dolaşmıyoruz.
-         * Kopyasını oluşturuyoruz.
+         * children() listesini doğrudan değiştirmiyoruz.
+         * Önce kopyasını alıyoruz.
          *
-         * Böylece event.removeListener(...)
-         * gerçek widget listesini değiştirirken
-         * ConcurrentModificationException oluşmaz.
+         * Böylece ConcurrentModificationException
+         * oluşmaz.
          */
         for (var child :
-                new ArrayList<>(event.getScreen().children())) {
+                new ArrayList<>(
+                        event.getScreen().children()
+                )) {
 
             if (!(child instanceof AbstractWidget widget)) {
                 continue;
             }
 
-            Component message = widget.getMessage();
+            Component message =
+                    widget.getMessage();
 
             if (message == null) {
                 continue;
             }
 
-            String text = message.getString();
+            String text =
+                    message.getString();
 
-            /*
-             * Quit Game butonunu kaldır.
-             */
             if (isQuitGame(text)) {
+
                 event.removeListener(widget);
+
                 continue;
             }
 
-            /*
-             * Open to LAN butonunu kaldır.
-             */
             if (isOpenToLan(text)) {
+
                 event.removeListener(widget);
             }
         }
     }
 
-    private static boolean isQuitGame(String text) {
+    // =========================================================
+    // SAVE & QUIT
+    // =========================================================
+
+    private static boolean isQuitGame(
+            String text
+    ) {
 
         if (text == null) {
             return false;
         }
 
         String normalized =
-                text.trim().toLowerCase();
+                text.trim()
+                        .toLowerCase();
 
         return normalized.equals("quit game")
-                || normalized.equals("quit")
+                || normalized.equals("Save and Quit to Title")
                 || normalized.contains("quit game")
                 || normalized.contains("oyundan çık")
                 || normalized.contains("oyundan cik");
     }
 
-    private static boolean isOpenToLan(String text) {
+    // =========================================================
+    // OPEN TO LAN
+    // =========================================================
+
+    private static boolean isOpenToLan(
+            String text
+    ) {
 
         if (text == null) {
             return false;
         }
 
         String normalized =
-                text.trim().toLowerCase();
+                text.trim()
+                        .toLowerCase();
 
         return normalized.equals("open to lan")
                 || normalized.contains("open to lan")
