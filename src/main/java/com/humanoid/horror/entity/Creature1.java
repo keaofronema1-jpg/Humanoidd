@@ -5,7 +5,6 @@ import com.humanoid.horror.entity.ai.Creature1AI;
 import com.humanoid.horror.network.JumpscarePacket;
 import com.humanoid.horror.network.ModMessages;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -22,7 +21,6 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.FluidState;
 
 import java.util.ArrayList;
@@ -47,18 +45,6 @@ public class Creature1 extends PathfinderMob {
                     EntityDataSerializers.INT
             );
 
-    /*
-     * SADECE EKRANDA GÖSTERİLECEK 500 -> 0 SAYACI
-     *
-     * Bu değer Creature1'in gerçek hareket/spawn sisteminden
-     * bağımsızdır.
-     */
-    private static final EntityDataAccessor<Integer> DISPLAY_TIMER =
-            SynchedEntityData.defineId(
-                    Creature1.class,
-                    EntityDataSerializers.INT
-            );
-
     // =========================================================
     // TARGET
     // =========================================================
@@ -70,22 +56,6 @@ public class Creature1 extends PathfinderMob {
     // =========================================================
 
     private boolean jumpscareTetiklendi = false;
-
-    // =========================================================
-    // MEVCUT CREATURE TIMER
-    // =========================================================
-
-    private boolean isTimerActive = true;
-
-    private int timerTicks = 0;
-
-    private int virtualDistanceTimer = 500;
-
-    // =========================================================
-    // SADECE EKRAN SAYACI
-    // =========================================================
-
-    private int displayTimerTicks = 0;
 
     // =========================================================
     // CONSTRUCTOR
@@ -114,14 +84,6 @@ public class Creature1 extends PathfinderMob {
 
         this.entityData.define(
                 TARGET_DISTANCE,
-                500
-        );
-
-        /*
-         * Sayaç başlangıçta 500.
-         */
-        this.entityData.define(
-                DISPLAY_TIMER,
                 500
         );
     }
@@ -186,85 +148,16 @@ public class Creature1 extends PathfinderMob {
             return;
         }
 
-        /*
-         * /start verilmediyse hiçbir sayaç ilerlemez.
-         */
+        // =====================================================
+        // /START KONTROLÜ
+        // =====================================================
+
         if (!HumanoidMod.isStartTriggered) {
             return;
         }
 
         // =====================================================
-        // SADECE EKRANDA GÖSTERİLEN 500 -> 0 SAYACI
-        // =====================================================
-
-        if (this.getDisplayTimer() > 0) {
-
-            displayTimerTicks++;
-
-            /*
-             * 20 tick = 1 saniye
-             */
-            if (displayTimerTicks >= 20) {
-
-                displayTimerTicks = 0;
-
-                int current =
-                        this.getDisplayTimer();
-
-                current--;
-
-                /*
-                 * 0'ın altına asla inmesin.
-                 */
-                if (current < 0) {
-                    current = 0;
-                }
-
-                this.setDisplayTimer(current);
-            }
-        }
-
-        // =====================================================
-        // MEVCUT AŞAMA 1
-        // 500 -> 92
-        // =====================================================
-
-        if (isTimerActive) {
-
-            this.setInvisible(true);
-            this.setInvulnerable(true);
-            this.setNoAi(true);
-
-            timerTicks++;
-
-            if (timerTicks >= 20) {
-
-                timerTicks = 0;
-
-                virtualDistanceTimer--;
-
-                this.setTargetDistance(
-                        virtualDistanceTimer
-                );
-
-                /*
-                 * Creature1'in gerçek spawn sistemi
-                 * eskisi gibi 92'de çalışıyor.
-                 *
-                 * EKRAN SAYACI bundan bağımsızdır ve
-                 * 500'den 0'a kadar devam eder.
-                 */
-                if (virtualDistanceTimer <= 92) {
-
-                    spawnAtDistance(92.0D);
-                }
-            }
-
-            return;
-        }
-
-        // =====================================================
-        // AŞAMA 2
+        // HEDEF
         // =====================================================
 
         ServerPlayer oyuncu =
@@ -275,9 +168,20 @@ public class Creature1 extends PathfinderMob {
             double mesafe =
                     this.distanceTo(oyuncu);
 
+            /*
+             * Creature1'in gerçek mesafesini entity
+             * datasında tutuyoruz.
+             *
+             * AI hareket kararını bundan almıyor.
+             * AI, ortak Creature1HUDState sayacını kullanıyor.
+             */
             this.setTargetDistance(
                     (int) mesafe
             );
+
+            // =================================================
+            // JUMPSCARE
+            // =================================================
 
             if (
                     mesafe <= 2.0D
@@ -296,8 +200,16 @@ public class Creature1 extends PathfinderMob {
         }
 
         // =====================================================
-        // GECE HIZI
+        // HIZ
         // =====================================================
+
+        /*
+         * Creature1AI kendi navigation hızını
+         * 1.05D olarak kullanıyor.
+         *
+         * Buradaki attribute ise entity'nin temel
+         * hareket attribute'u olarak kalıyor.
+         */
 
         boolean isNight =
                 this.level().isNight();
@@ -354,6 +266,18 @@ public class Creature1 extends PathfinderMob {
                             && player.isAlive()
                             && !player.isSpectator()
             ) {
+
+                /*
+                 * Hedef isim senkronu.
+                 */
+                this.setTargetName(
+                        player.getScoreboardName()
+                );
+
+                Creature1HUDState.setTargetName(
+                        player.getScoreboardName()
+                );
+
                 return player;
             }
         }
@@ -361,10 +285,14 @@ public class Creature1 extends PathfinderMob {
         return selectNextTarget();
     }
 
+    // =========================================================
+    // SELECT TARGET
+    // =========================================================
+
     public ServerPlayer selectNextTarget() {
 
         if (
-                this.level().isClientSide()
+                this.level().isClientSide
                         || this.level().getServer() == null
         ) {
             return null;
@@ -384,6 +312,10 @@ public class Creature1 extends PathfinderMob {
 
             this.setTargetDistance(0);
 
+            Creature1HUDState.setTargetName(
+                    "Yok"
+            );
+
             return null;
         }
 
@@ -400,87 +332,22 @@ public class Creature1 extends PathfinderMob {
         this.targetUUID =
                 chosen.getUUID();
 
+        String targetName =
+                chosen.getScoreboardName();
+
         this.setTargetName(
-                chosen.getScoreboardName()
+                targetName
+        );
+
+        /*
+         * HUD artık Creature1'in gerçekten seçtiği
+         * oyuncuyu gösteriyor.
+         */
+        Creature1HUDState.setTargetName(
+                targetName
         );
 
         return chosen;
-    }
-
-    // =========================================================
-    // SPAWN AT DISTANCE
-    // =========================================================
-
-    private void spawnAtDistance(
-            double distance
-    ) {
-
-        ServerPlayer target =
-                selectNextTarget();
-
-        if (target == null) {
-
-            this.discard();
-
-            return;
-        }
-
-        RandomSource rand =
-                this.getRandom();
-
-        double angle =
-                rand.nextDouble()
-                        * Math.PI
-                        * 2.0D;
-
-        double newX =
-                target.getX()
-                        + Math.cos(angle)
-                        * distance;
-
-        double newZ =
-                target.getZ()
-                        + Math.sin(angle)
-                        * distance;
-
-        BlockPos checkPos =
-                BlockPos.containing(
-                        newX,
-                        0,
-                        newZ
-                );
-
-        int newY =
-                this.level()
-                        .getHeightmapPos(
-                                Heightmap.Types.WORLD_SURFACE,
-                                checkPos
-                        )
-                        .getY();
-
-        if (
-                newY
-                        <= this.level()
-                                .getMinBuildHeight()
-        ) {
-
-            newY =
-                    (int) target.getY();
-        }
-
-        this.moveTo(
-                newX,
-                newY,
-                newZ,
-                this.getYRot(),
-                this.getXRot()
-        );
-
-        this.setInvisible(false);
-        this.setInvulnerable(false);
-        this.setNoAi(false);
-
-        this.isTimerActive = false;
     }
 
     // =========================================================
@@ -589,6 +456,10 @@ public class Creature1 extends PathfinderMob {
             String name
     ) {
 
+        if (name == null) {
+            name = "";
+        }
+
         this.entityData.set(
                 TARGET_NAME,
                 name
@@ -612,7 +483,7 @@ public class Creature1 extends PathfinderMob {
 
         this.entityData.set(
                 TARGET_DISTANCE,
-                dist
+                Math.max(0, dist)
         );
     }
 
@@ -620,27 +491,6 @@ public class Creature1 extends PathfinderMob {
 
         return this.entityData.get(
                 TARGET_DISTANCE
-        );
-    }
-
-    // =========================================================
-    // DISPLAY TIMER
-    // =========================================================
-
-    public void setDisplayTimer(
-            int value
-    ) {
-
-        this.entityData.set(
-                DISPLAY_TIMER,
-                Math.max(0, value)
-        );
-    }
-
-    public int getDisplayTimer() {
-
-        return this.entityData.get(
-                DISPLAY_TIMER
         );
     }
 
@@ -663,29 +513,9 @@ public class Creature1 extends PathfinderMob {
             );
         }
 
-        tag.putBoolean(
-                "IsTimerActive",
-                this.isTimerActive
-        );
-
         tag.putInt(
-                "TimerTicks",
-                this.timerTicks
-        );
-
-        tag.putInt(
-                "VirtualDistanceTimer",
-                this.virtualDistanceTimer
-        );
-
-        tag.putInt(
-                "DisplayTimer",
-                this.getDisplayTimer()
-        );
-
-        tag.putInt(
-                "DisplayTimerTicks",
-                this.displayTimerTicks
+                "TargetDistance",
+                this.getTargetDistance()
         );
     }
 
@@ -710,31 +540,13 @@ public class Creature1 extends PathfinderMob {
                     );
         }
 
-        this.isTimerActive =
-                tag.getBoolean(
-                        "IsTimerActive"
-                );
+        if (tag.contains("TargetDistance")) {
 
-        this.timerTicks =
-                tag.getInt(
-                        "TimerTicks"
-                );
-
-        this.virtualDistanceTimer =
-                tag.getInt(
-                        "VirtualDistanceTimer"
-                );
-
-        if (tag.contains("DisplayTimer")) {
-
-            this.setDisplayTimer(
-                    tag.getInt("DisplayTimer")
+            this.setTargetDistance(
+                    tag.getInt(
+                            "TargetDistance"
+                    )
             );
         }
-
-        this.displayTimerTicks =
-                tag.getInt(
-                        "DisplayTimerTicks"
-                );
     }
 }
