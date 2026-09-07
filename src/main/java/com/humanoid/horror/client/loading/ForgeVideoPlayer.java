@@ -1,23 +1,30 @@
 package com.humanoid.horror.client.loading;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.resources.ResourceLocation;
+
 public final class ForgeVideoPlayer {
 
-    // Tek bir frame
     public static final int FRAME_WIDTH = 384;
     public static final int FRAME_HEIGHT = 240;
 
-    // Sprite sheet: 28 x 28
     public static final int COLUMNS = 28;
     public static final int ROWS = 28;
 
-    // Toplam frame
-    public static final int TOTAL_FRAMES = COLUMNS * ROWS;
+    public static final int TOTAL_FRAMES =
+            COLUMNS * ROWS;
 
-    // Video FPS
     public static final int FPS = 30;
 
     private static final long FRAME_TIME_NS =
             1_000_000_000L / FPS;
+
+    private static final ResourceLocation FORGE_SOUND =
+            new ResourceLocation(
+                    "humanoid",
+                    "forge_intro"
+            );
 
     private static boolean started = false;
     private static boolean finished = false;
@@ -36,9 +43,14 @@ public final class ForgeVideoPlayer {
         started = true;
         finished = false;
 
+        /*
+         * Animasyonun başlangıç zamanı.
+         */
         startTime = System.nanoTime();
 
-        // Ses daha sonra burada aynı anda başlatılacak.
+        /*
+         * Ses de aynı başlangıçta başlatılıyor.
+         */
         playSound();
     }
 
@@ -63,7 +75,9 @@ public final class ForgeVideoPlayer {
                 (int) (elapsed / FRAME_TIME_NS);
 
         if (frame >= TOTAL_FRAMES) {
+
             finished = true;
+
             return TOTAL_FRAMES - 1;
         }
 
@@ -107,16 +121,28 @@ public final class ForgeVideoPlayer {
 
     private static void playSound() {
 
-        /*
-         * forge.ogg burada başlatılacak.
-         *
-         * Konum:
-         *
-         * assets/humanoid/video/forge.ogg
-         *
-         * Animasyonun başladığı aynı anda
-         * tetiklenecek.
-         */
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft == null) {
+            return;
+        }
+
+        try {
+
+            minecraft.getSoundManager().play(
+                    SimpleSoundInstance.forUI(
+                            FORGE_SOUND,
+                            1.0F
+                    )
+            );
+
+        } catch (Exception ignored) {
+            /*
+             * Loading sırasında ses sistemi hazır değilse
+             * oyun crash olmasın.
+             */
+        }
     }
 
     public static synchronized void stop() {
