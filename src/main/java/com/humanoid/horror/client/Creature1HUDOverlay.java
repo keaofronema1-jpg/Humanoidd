@@ -34,7 +34,7 @@ public class Creature1HUDOverlay {
     private static final ResourceLocation HUD_BACKGROUND =
             new ResourceLocation(
                     "humanoid",
-                    "textures/gui/creature1_hud.png"
+                    "gui/creature1_hud.png"
             );
 
     // =========================================================
