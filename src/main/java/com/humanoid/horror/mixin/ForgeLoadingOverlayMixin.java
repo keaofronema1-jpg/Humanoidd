@@ -4,7 +4,6 @@ import com.humanoid.horror.client.loading.ForgeVideoPlayer;
 import com.humanoid.horror.client.loading.ForgeVideoRenderer;
 
 import net.minecraft.client.gui.GuiGraphics;
-
 import net.minecraftforge.client.loading.ForgeLoadingOverlay;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,18 +37,19 @@ public class ForgeLoadingOverlayMixin {
                 guiGraphics.guiHeight();
 
         /*
-         * Videoyu yalnızca bir kere başlat.
+         * Animasyonu yalnızca bir kere başlat.
          */
         if (!humanoid$videoStarted) {
 
             humanoid$videoStarted = true;
 
             ForgeVideoPlayer.startFromResource();
+            ForgeVideoRenderer.init();
         }
 
         /*
-         * Video bittiyse artık Forge'un kendi
-         * loading ekranına müdahale etme.
+         * Animasyon bittiyse Forge'un normal
+         * loading ekranına geri dön.
          */
         if (humanoid$videoFinished ||
                 ForgeVideoPlayer.isFinished()) {
@@ -57,59 +57,24 @@ public class ForgeLoadingOverlayMixin {
             humanoid$videoFinished = true;
 
             ForgeVideoPlayer.stop();
-
-            try {
-                ForgeVideoRenderer.release();
-            } catch (Exception ignored) {
-            }
+            ForgeVideoRenderer.release();
 
             return;
         }
 
         /*
-         * İlk frame gelene kadar siyah ekran.
+         * Önce tamamen siyah arka plan.
          */
-        if (!ForgeVideoPlayer.hasFrame()) {
-
-            guiGraphics.fill(
-                    0,
-                    0,
-                    width,
-                    height,
-                    0xFF000000
-            );
-
-            ci.cancel();
-            return;
-        }
+        guiGraphics.fill(
+                0,
+                0,
+                width,
+                height,
+                0xFF000000
+        );
 
         /*
-         * Son frame'i al.
-         */
-        var frame =
-                ForgeVideoPlayer.getFrameBuffer();
-
-        if (frame != null) {
-
-            int videoWidth =
-                    ForgeVideoPlayer.getVideoWidth();
-
-            int videoHeight =
-                    ForgeVideoPlayer.getVideoHeight();
-
-            if (videoWidth > 0 &&
-                    videoHeight > 0) {
-
-                ForgeVideoRenderer.uploadFrame(
-                        frame,
-                        videoWidth,
-                        videoHeight
-                );
-            }
-        }
-
-        /*
-         * Videoyu tam ekran çiz.
+         * Sprite sheet'teki mevcut frame'i çiz.
          */
         ForgeVideoRenderer.render(
                 guiGraphics,
@@ -118,8 +83,8 @@ public class ForgeLoadingOverlayMixin {
         );
 
         /*
-         * Forge'un varsayılan anvil / memory /
-         * progress ekranını çizmesini engelle.
+         * Forge'un kendi loading ekranını
+         * çizmesini engelle.
          */
         ci.cancel();
     }
