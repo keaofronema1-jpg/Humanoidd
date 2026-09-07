@@ -1,0 +1,49 @@
+package com.humanoid.horror.world;
+
+import com.humanoid.horror.HumanoidMod;
+
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraftforge.event.entity.living.LivingSpawnEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+import java.util.Random;
+
+@Mod.EventBusSubscriber(
+        modid = HumanoidMod.MOD_ID,
+        bus = Mod.EventBusSubscriber.Bus.FORGE
+)
+public class WorldMobReduction {
+
+    private static final Random RANDOM = new Random();
+
+    // %80 azaltma = %20 spawn şansı
+    private static final double SPAWN_CHANCE = 0.20D;
+
+    @SubscribeEvent
+    public static void onLivingSpawn(LivingSpawnEvent.CheckSpawn event) {
+
+        // Sadece doğal spawnları etkileyelim.
+        if (event.getSpawnReason() != LivingSpawnEvent.SpawnReason.NATURAL) {
+            return;
+        }
+
+        // Sadece pasif Animal sınıfındaki canlılar.
+        if (!(event.getEntity() instanceof Animal)) {
+            return;
+        }
+
+        EntityType<?> type = event.getEntity().getType();
+
+        // Bizim özel entity'lere kesinlikle dokunma.
+        if (type == EntityType.PLAYER) {
+            return;
+        }
+
+        // %20 ihtimalle bırak, %80 ihtimalle engelle.
+        if (RANDOM.nextDouble() >= SPAWN_CHANCE) {
+            event.setCanceled(true);
+        }
+    }
+}
