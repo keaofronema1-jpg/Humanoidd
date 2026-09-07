@@ -1,13 +1,11 @@
 package com.humanoid.horror.client;
 
 import com.humanoid.horror.HumanoidMod;
-import com.humanoid.horror.entity.Creature1;
+import com.humanoid.horror.entity.Creature1HUDState;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.Level;
 
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
@@ -16,7 +14,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(
-        modid = "humanoid",
+        modid = HumanoidMod.MOD_ID,
         value = Dist.CLIENT
 )
 public class Creature1HUDOverlay {
@@ -29,12 +27,17 @@ public class Creature1HUDOverlay {
     private static final int Y = 10;
 
     // =========================================================
-    // HUD ARKA PLANI
+    // HUD TEXTURE
     // =========================================================
 
+    /*
+     * Dosya:
+     *
+     * assets/humanoid/gui/creature1_hud.png
+     */
     private static final ResourceLocation HUD_BACKGROUND =
             new ResourceLocation(
-                    "humanoid",
+                    HumanoidMod.MOD_ID,
                     "gui/creature1_hud.png"
             );
 
@@ -49,9 +52,14 @@ public class Creature1HUDOverlay {
     // YAZI KONUMU
     // =========================================================
 
-    private static final int TEXT_X = X + 8;
-    private static final int TIMER_Y = Y + 6;
-    private static final int NAME_Y = Y + 18;
+    private static final int TEXT_X =
+            X + 8;
+
+    private static final int TIMER_Y =
+            Y + 6;
+
+    private static final int NAME_Y =
+            Y + 18;
 
     // =========================================================
     // HUD RENDER
@@ -62,13 +70,13 @@ public class Creature1HUDOverlay {
             RenderGuiOverlayEvent.Post event
     ) {
 
-        /*
-         * HUD'ı yalnızca crosshair çizildikten sonra çiz.
-         *
-         * Böylece her frame'de tek kez ve güvenilir
-         * bir render noktası elde ediyoruz.
-         */
-        if (event.getOverlay() != VanillaGuiOverlay.CROSSHAIR.type()) {
+        // =====================================================
+        // SADECE CROSSHAIR SONRASI
+        // =====================================================
+
+        if (event.getOverlay()
+                != VanillaGuiOverlay.CROSSHAIR.type()) {
+
             return;
         }
 
@@ -76,13 +84,12 @@ public class Creature1HUDOverlay {
                 Minecraft.getInstance();
 
         // =====================================================
-        // OYUNCU / DÜNYA KONTROLÜ
+        // CLIENT KONTROLÜ
         // =====================================================
 
-        if (
-                minecraft.player == null
-                        || minecraft.level == null
-        ) {
+        if (minecraft.player == null
+                || minecraft.level == null) {
+
             return;
         }
 
@@ -94,32 +101,30 @@ public class Creature1HUDOverlay {
             return;
         }
 
-        Level level =
-                minecraft.level;
-
         // =====================================================
-        // CREATURE1 BUL
+        // STATE KONTROLÜ
         // =====================================================
 
-        Creature1 creature =
-                findCreature1(
-                        level,
-                        minecraft.player
-                );
-
-        if (creature == null) {
+        if (!Creature1HUDState.isActive()) {
             return;
         }
 
         // =====================================================
-        // SAYACI AL
+        // STATE'DEN SAYAÇ AL
         // =====================================================
 
         int timer =
-                creature.getDisplayTimer();
+                Creature1HUDState.getDistance();
 
+        /*
+         * Güvenlik.
+         */
         if (timer < 0) {
             timer = 0;
+        }
+
+        if (timer > 500) {
+            timer = 500;
         }
 
         // =====================================================
@@ -127,17 +132,14 @@ public class Creature1HUDOverlay {
         // =====================================================
 
         String targetName =
-                creature.getTargetName();
+                Creature1HUDState.getTargetName();
 
-        if (
-                targetName == null
-                        || targetName.isEmpty()
-        ) {
+        if (targetName == null) {
             targetName = "";
         }
 
         // =====================================================
-        // ÇİZİM
+        // GRAPHICS
         // =====================================================
 
         GuiGraphics graphics =
@@ -146,7 +148,7 @@ public class Creature1HUDOverlay {
         graphics.pose().pushPose();
 
         // =====================================================
-        // PNG
+        // HUD PNG
         // =====================================================
 
         graphics.blit(
@@ -175,7 +177,7 @@ public class Creature1HUDOverlay {
         );
 
         // =====================================================
-        // HEDEF OYUNCU ADI
+        // HEDEF OYUNCU
         // =====================================================
 
         if (!targetName.isEmpty()) {
@@ -190,55 +192,10 @@ public class Creature1HUDOverlay {
             );
         }
 
+        // =====================================================
+        // BITIR
+        // =====================================================
+
         graphics.pose().popPose();
-    }
-
-    // =========================================================
-    // EN YAKIN CREATURE1'I BUL
-    // =========================================================
-
-    private static Creature1 findCreature1(
-            Level level,
-            Entity player
-    ) {
-
-        Creature1 closest =
-                null;
-
-        double closestDistance =
-                Double.MAX_VALUE;
-
-        // =====================================================
-        // 512 BLOK İÇİNDEKİ CREATURE1'LER
-        // =====================================================
-
-        for (
-                Creature1 creature :
-                level.getEntitiesOfClass(
-                        Creature1.class,
-                        player.getBoundingBox()
-                                .inflate(512.0D)
-                )
-        ) {
-
-            double distance =
-                    player.distanceToSqr(
-                            creature
-                    );
-
-            if (
-                    closest == null
-                            || distance < closestDistance
-            ) {
-
-                closest =
-                        creature;
-
-                closestDistance =
-                        distance;
-            }
-        }
-
-        return closest;
     }
 }
