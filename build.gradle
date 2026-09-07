@@ -72,7 +72,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
     // VLCJ - MP4 video playback
-    implementation 'uk.co.caprica:vlcj:4.12.1'
+    
 }
 
 tasks.named('processResources', ProcessResources).configure {
