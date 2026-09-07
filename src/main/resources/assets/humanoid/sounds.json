@@ -60,5 +60,15 @@
         "name": "humanoid:random"
       }
     ]
+  },
+
+  "forge_intro": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "humanoid:video/forge",
+        "stream": true
+      }
+    ]
   }
 }
