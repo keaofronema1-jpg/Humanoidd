@@ -1,36 +1,28 @@
 package com.humanoid.horror.client.loading;
 
-import net.minecraft.client.Minecraft;
-import org.lwjgl.system.MemoryUtil;
-import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
-import uk.co.caprica.vlcj.player.base.MediaPlayer;
-import uk.co.caprica.vlcj.player.base.MediaPlayerEventAdapter;
-import uk.co.caprica.vlcj.player.embedded.EmbeddedMediaPlayer;
-import uk.co.caprica.vlcj.player.embedded.videosurface.callback.BufferFormat;
-import uk.co.caprica.vlcj.player.embedded.videosurface.callback.BufferFormatCallback;
-import uk.co.caprica.vlcj.player.embedded.videosurface.callback.RenderCallback;
-import uk.co.caprica.vlcj.player.embedded.videosurface.callback.format.RV32BufferFormat;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 public final class ForgeVideoPlayer {
 
-    private static MediaPlayerFactory factory;
-    private static EmbeddedMediaPlayer player;
+    // Tek bir frame
+    public static final int FRAME_WIDTH = 384;
+    public static final int FRAME_HEIGHT = 240;
 
-    private static ByteBuffer frameBuffer;
-    private static ByteBuffer snapshotBuffer;
+    // Sprite sheet: 28 x 28
+    public static final int COLUMNS = 28;
+    public static final int ROWS = 28;
 
-    private static volatile int videoWidth;
-    private static volatile int videoHeight;
+    // Toplam frame
+    public static final int TOTAL_FRAMES = COLUMNS * ROWS;
 
-    private static volatile boolean frameReady;
-    private static volatile boolean finished;
-    private static volatile boolean started;
+    // Video FPS
+    public static final int FPS = 30;
+
+    private static final long FRAME_TIME_NS =
+            1_000_000_000L / FPS;
+
+    private static boolean started = false;
+    private static boolean finished = false;
+
+    private static long startTime;
 
     private ForgeVideoPlayer() {
     }
@@ -41,363 +33,95 @@ public final class ForgeVideoPlayer {
             return;
         }
 
-        try {
-            Path videoPath = extractVideo();
-
-            if (videoPath == null) {
-                finished = true;
-                return;
-            }
-
-            start(videoPath);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            finished = true;
-        }
-    }
-
-    private static Path extractVideo() throws IOException {
-
-        Minecraft minecraft = Minecraft.getInstance();
-
-        if (minecraft == null ||
-                minecraft.gameDirectory == null) {
-            return null;
-        }
-
-        Path videoPath = minecraft.gameDirectory
-                .toPath()
-                .resolve("humanoid_forge_loading.mp4");
-
-        if (Files.exists(videoPath)) {
-            return videoPath;
-        }
-
-        try (InputStream input =
-                     ForgeVideoPlayer.class
-                             .getClassLoader()
-                             .getResourceAsStream(
-                                     "assets/humanoid/video/forge.mp4"
-                             )) {
-
-            if (input == null) {
-                return null;
-            }
-
-            Files.copy(input, videoPath);
-        }
-
-        return videoPath;
-    }
-
-    public static synchronized void start(Path video) {
-
-        if (started) {
-            return;
-        }
-
-        if (video == null ||
-                !Files.exists(video)) {
-
-            finished = true;
-            return;
-        }
-
         started = true;
         finished = false;
-        frameReady = false;
 
-        videoWidth = 0;
-        videoHeight = 0;
+        startTime = System.nanoTime();
 
-        factory = new MediaPlayerFactory();
-
-        player = factory
-                .mediaPlayers()
-                .newEmbeddedMediaPlayer();
-
-        player.events().addMediaPlayerEventListener(
-                new MediaPlayerEventAdapter() {
-
-                    @Override
-                    public void finished(
-                            MediaPlayer mediaPlayer
-                    ) {
-                        finished = true;
-                    }
-
-                    @Override
-                    public void error(
-                            MediaPlayer mediaPlayer
-                    ) {
-                        finished = true;
-                    }
-                }
-        );
-
-        BufferFormatCallback bufferFormatCallback =
-                new BufferFormatCallback() {
-
-                    @Override
-                    public BufferFormat getBufferFormat(
-                            int sourceWidth,
-                            int sourceHeight
-                    ) {
-
-                        videoWidth = sourceWidth;
-                        videoHeight = sourceHeight;
-
-                        return new RV32BufferFormat(
-                                sourceWidth,
-                                sourceHeight
-                        );
-                    }
-
-                    @Override
-                    public void newFormatSize(
-                            int bufferWidth,
-                            int bufferHeight,
-                            int displayWidth,
-                            int displayHeight
-                    ) {
-
-                        if (displayWidth > 0) {
-                            videoWidth = displayWidth;
-                        } else {
-                            videoWidth = bufferWidth;
-                        }
-
-                        if (displayHeight > 0) {
-                            videoHeight = displayHeight;
-                        } else {
-                            videoHeight = bufferHeight;
-                        }
-                    }
-
-                    @Override
-                    public void allocatedBuffers(
-                            ByteBuffer[] buffers
-                    ) {
-                        // VLCJ native bufferlarını yönetir.
-                    }
-                };
-
-        RenderCallback renderCallback =
-                new RenderCallback() {
-
-                    @Override
-                    public void lock(
-                            MediaPlayer mediaPlayer
-                    ) {
-                        // VLCJ frame buffer kilidi.
-                    }
-
-                    @Override
-                    public void display(
-                            MediaPlayer mediaPlayer,
-                            ByteBuffer[] nativeBuffers,
-                            BufferFormat bufferFormat,
-                            int displayWidth,
-                            int displayHeight
-                    ) {
-
-                        if (nativeBuffers == null ||
-                                nativeBuffers.length == 0) {
-                            return;
-                        }
-
-                        ByteBuffer buffer =
-                                nativeBuffers[0];
-
-                        if (buffer == null) {
-                            return;
-                        }
-
-                        if (displayWidth > 0) {
-                            videoWidth = displayWidth;
-                        }
-
-                        if (displayHeight > 0) {
-                            videoHeight = displayHeight;
-                        }
-
-                        synchronized (
-                                ForgeVideoPlayer.class
-                        ) {
-
-                            int requiredSize =
-                                    buffer.remaining();
-
-                            if (frameBuffer == null ||
-                                    frameBuffer.capacity()
-                                            < requiredSize) {
-
-                                if (frameBuffer != null) {
-                                    MemoryUtil.memFree(
-                                            frameBuffer
-                                    );
-                                }
-
-                                frameBuffer =
-                                        MemoryUtil.memAlloc(
-                                                requiredSize
-                                        );
-                            }
-
-                            frameBuffer.clear();
-
-                            ByteBuffer source =
-                                    buffer.duplicate();
-
-                            frameBuffer.put(source);
-
-                            frameBuffer.flip();
-
-                            frameReady = true;
-                        }
-                    }
-
-                    @Override
-                    public void unlock(
-                            MediaPlayer mediaPlayer
-                    ) {
-                        // VLCJ frame buffer kilidi bırakılır.
-                    }
-                };
-
-        player.videoSurface().set(
-                factory
-                        .videoSurfaces()
-                        .newVideoSurface(
-                                bufferFormatCallback,
-                                renderCallback,
-                                true
-                        )
-        );
-
-        boolean playing =
-                player.media().play(
-                        video.toAbsolutePath().toString()
-                );
-
-        if (!playing) {
-            finished = true;
-        }
+        // Ses daha sonra burada aynı anda başlatılacak.
+        playSound();
     }
 
-    public static synchronized ByteBuffer getFrameBuffer() {
+    public static int getCurrentFrame() {
 
-        if (!frameReady ||
-                frameBuffer == null) {
-            return null;
+        if (!started) {
+            return 0;
         }
 
-        int size =
-                frameBuffer.remaining();
-
-        if (snapshotBuffer == null ||
-                snapshotBuffer.capacity() < size) {
-
-            if (snapshotBuffer != null) {
-                MemoryUtil.memFree(
-                        snapshotBuffer
-                );
-            }
-
-            snapshotBuffer =
-                    MemoryUtil.memAlloc(size);
+        if (finished) {
+            return TOTAL_FRAMES - 1;
         }
 
-        snapshotBuffer.clear();
+        long elapsed =
+                System.nanoTime() - startTime;
 
-        ByteBuffer source =
-                frameBuffer.duplicate();
+        if (elapsed < 0) {
+            elapsed = 0;
+        }
 
-        snapshotBuffer.put(source);
+        int frame =
+                (int) (elapsed / FRAME_TIME_NS);
 
-        snapshotBuffer.flip();
+        if (frame >= TOTAL_FRAMES) {
+            finished = true;
+            return TOTAL_FRAMES - 1;
+        }
 
-        return snapshotBuffer.duplicate();
+        return frame;
+    }
+
+    public static int getFrameColumn() {
+
+        return getCurrentFrame() % COLUMNS;
+    }
+
+    public static int getFrameRow() {
+
+        return getCurrentFrame() / COLUMNS;
     }
 
     public static boolean hasFrame() {
-        return frameReady;
-    }
 
-    public static int getVideoWidth() {
-        return videoWidth;
-    }
-
-    public static int getVideoHeight() {
-        return videoHeight;
-    }
-
-    public static boolean isFinished() {
-        return finished;
+        return started;
     }
 
     public static boolean isStarted() {
+
         return started;
+    }
+
+    public static boolean isFinished() {
+
+        return finished;
+    }
+
+    public static int getVideoWidth() {
+
+        return FRAME_WIDTH;
+    }
+
+    public static int getVideoHeight() {
+
+        return FRAME_HEIGHT;
+    }
+
+    private static void playSound() {
+
+        /*
+         * forge.ogg burada başlatılacak.
+         *
+         * Konum:
+         *
+         * assets/humanoid/video/forge.ogg
+         *
+         * Animasyonun başladığı aynı anda
+         * tetiklenecek.
+         */
     }
 
     public static synchronized void stop() {
 
         finished = true;
-
-        if (player != null) {
-
-            try {
-                player.controls().stop();
-            } catch (Exception ignored) {
-            }
-
-            try {
-                player.release();
-            } catch (Exception ignored) {
-            }
-
-            player = null;
-        }
-
-        if (factory != null) {
-
-            try {
-                factory.release();
-            } catch (Exception ignored) {
-            }
-
-            factory = null;
-        }
-
-        if (frameBuffer != null) {
-
-            try {
-                MemoryUtil.memFree(
-                        frameBuffer
-                );
-            } catch (Exception ignored) {
-            }
-
-            frameBuffer = null;
-        }
-
-        if (snapshotBuffer != null) {
-
-            try {
-                MemoryUtil.memFree(
-                        snapshotBuffer
-                );
-            } catch (Exception ignored) {
-            }
-
-            snapshotBuffer = null;
-        }
-
-        videoWidth = 0;
-        videoHeight = 0;
-
-        frameReady = false;
         started = false;
     }
 }
