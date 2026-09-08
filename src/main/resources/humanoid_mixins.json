@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "mixins.humanoid.refmap.json",
   "mixins": [
-    "PlainsOnlyWorldgen"
+    "PlainsOnlyWorldgen",
+    "NoNaturalTrees"
   ],
   "client": [
     "ForgeLoadingOverlayMixin"
