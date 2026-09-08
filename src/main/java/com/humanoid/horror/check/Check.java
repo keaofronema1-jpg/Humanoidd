@@ -21,6 +21,7 @@ import net.minecraft.world.level.border.WorldBorder;
 
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -58,6 +59,11 @@ public class Check {
     private static final String START_Z_KEY =
             "start_z";
 
+    /*
+     * İlk girişteki WorldBorder:
+     *
+     * 16 x 16 BLOK
+     */
     private static final double INITIAL_BORDER_SIZE =
             16.0D;
 
@@ -349,7 +355,76 @@ public class Check {
             return;
         }
 
+        /*
+         * Yeni dünya / henüz /start yapılmamışsa
+         * 16x16 blok border hazırlanır.
+         */
         setupInitialPrison(server);
+    }
+
+    // =========================================================
+    // PLAYER LOGIN
+    // =========================================================
+    /*
+     * Oyuncu dünyaya gerçekten girdiği anda çalışır.
+     *
+     * /start beklemez.
+     *
+     * Oyuncu:
+     *   - Adventure olur
+     *   - 16x16 blok border içerisinde kalır
+     *
+     * /start daha sonra geldiğinde:
+     *   - Survival
+     *   - border kaldırılır
+     */
+    @SubscribeEvent
+    public static void onPlayerLoggedIn(
+            PlayerEvent.PlayerLoggedInEvent event
+    ) {
+
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        MinecraftServer server =
+                player.getServer();
+
+        if (server == null) {
+            return;
+        }
+
+        /*
+         * /start daha önce kullanıldıysa
+         * başlangıç hapishanesi uygulanmaz.
+         */
+        if (isStartAlreadyUsed(server)) {
+
+            if (
+                    player.gameMode
+                            .getGameModeForPlayer()
+                            != GameType.SURVIVAL
+            ) {
+
+                player.setGameMode(
+                        GameType.SURVIVAL
+                );
+            }
+
+            return;
+        }
+
+        /*
+         * Border'ın kesin olarak hazır olduğundan emin ol.
+         */
+        setupInitialPrison(server);
+
+        /*
+         * /start öncesi oyuncu Adventure.
+         */
+        player.setGameMode(
+                GameType.ADVENTURE
+        );
     }
 
     public static void setupInitialPrison(
@@ -367,6 +442,10 @@ public class Check {
             return;
         }
 
+        if (server.overworld() == null) {
+            return;
+        }
+
         WorldBorder border =
                 server.overworld()
                         .getWorldBorder();
@@ -375,6 +454,14 @@ public class Check {
             return;
         }
 
+        /*
+         * 16x16 BLOK.
+         *
+         * Merkez 8,8 olduğu için:
+         *
+         * X = 0 .. 16
+         * Z = 0 .. 16
+         */
         border.setCenter(
                 8.0D,
                 8.0D
@@ -498,10 +585,19 @@ public class Check {
                                 );
                             }
 
+                            /*
+                             * Border kaldırılır.
+                             */
                             removeWorldBorder(server);
 
+                            /*
+                             * Platform kontrolü.
+                             */
                             verifyPlatform();
 
+                            /*
+                             * Horror / Survival sistemleri.
+                             */
                             triggerStartCommand();
 
                             StartTimeWeatherManager.start(
@@ -544,8 +640,7 @@ public class Check {
                                                     Component.literal(
                                                             "§4RUN"
                                                     )
-                                            )
-                                    );
+                                            );
                                 }
                             }
 
@@ -772,16 +867,8 @@ public class Check {
                         && Creature1HUDState.isActive()
         ) {
 
-            /*
-             * 92 kontrolü için önceki değeri alıyoruz.
-             */
-
             int previousDistance =
                     Creature1HUDState.getDistance();
-
-            /*
-             * Gerçek zamanlı sayaç ilerliyor.
-             */
 
             Creature1HUDState.tick();
 
@@ -806,11 +893,6 @@ public class Check {
                         players != null
                                 && !players.isEmpty()
                 ) {
-
-                    /*
-                     * /start sırasında HUD'a verilen
-                     * hedef oyuncuyu buluyoruz.
-                     */
 
                     String targetName =
                             Creature1HUDState
@@ -837,11 +919,6 @@ public class Check {
                             break;
                         }
                     }
-
-                    /*
-                     * Hedef bulunamazsa ilk oyuncuyu
-                     * kullanıyoruz.
-                     */
 
                     if (targetPlayer == null) {
 
