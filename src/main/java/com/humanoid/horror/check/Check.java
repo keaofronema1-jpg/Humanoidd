@@ -3,6 +3,7 @@ package com.humanoid.horror.check;
 import com.humanoid.horror.HumanoidMod;
 import com.humanoid.horror.android.AndroidHandler;
 import com.humanoid.horror.pc.WindowsAtmosBridge;
+import com.humanoid.horror.entity.Creature1;
 import com.humanoid.horror.entity.Creature1HUDState;
 import com.humanoid.horror.network.Creature1HUDPacket;
 import com.humanoid.horror.network.ModMessages;
@@ -76,6 +77,7 @@ public class Check {
     private static Path getStartFile(
             MinecraftServer server
     ) {
+
         if (server == null) {
             return null;
         }
@@ -88,7 +90,9 @@ public class Check {
     private static CompoundTag readStartData(
             MinecraftServer server
     ) {
-        Path file = getStartFile(server);
+
+        Path file =
+                getStartFile(server);
 
         if (file == null) {
             return null;
@@ -99,11 +103,13 @@ public class Check {
         }
 
         try {
+
             return NbtIo.readCompressed(
                     file.toFile()
             );
 
         } catch (Exception ignored) {
+
             return null;
         }
     }
@@ -111,6 +117,7 @@ public class Check {
     private static boolean isStartAlreadyUsed(
             MinecraftServer server
     ) {
+
         CompoundTag data =
                 readStartData(server);
 
@@ -127,18 +134,28 @@ public class Check {
             MinecraftServer server,
             ServerPlayer player
     ) {
-        Path file = getStartFile(server);
 
-        if (file == null
-                || player == null) {
+        Path file =
+                getStartFile(server);
+
+        if (
+                file == null
+                        || player == null
+        ) {
+
             return false;
         }
 
         try {
-            Path parent = file.getParent();
+
+            Path parent =
+                    file.getParent();
 
             if (parent != null) {
-                Files.createDirectories(parent);
+
+                Files.createDirectories(
+                        parent
+                );
             }
 
             CompoundTag data =
@@ -172,6 +189,7 @@ public class Check {
             return true;
 
         } catch (IOException ignored) {
+
             return false;
         }
     }
@@ -179,6 +197,7 @@ public class Check {
     public static net.minecraft.core.BlockPos getStartPosition(
             MinecraftServer server
     ) {
+
         CompoundTag data =
                 readStartData(server);
 
@@ -186,15 +205,21 @@ public class Check {
             return null;
         }
 
-        if (!data.getBoolean(
-                START_USED_KEY
-        )) {
+        if (
+                !data.getBoolean(
+                        START_USED_KEY
+                )
+        ) {
+
             return null;
         }
 
-        if (!data.contains(START_X_KEY)
-                || !data.contains(START_Y_KEY)
-                || !data.contains(START_Z_KEY)) {
+        if (
+                !data.contains(START_X_KEY)
+                        || !data.contains(START_Y_KEY)
+                        || !data.contains(START_Z_KEY)
+        ) {
+
             return null;
         }
 
@@ -208,6 +233,7 @@ public class Check {
     public static int getStartX(
             MinecraftServer server
     ) {
+
         net.minecraft.core.BlockPos pos =
                 getStartPosition(server);
 
@@ -219,6 +245,7 @@ public class Check {
     public static int getStartY(
             MinecraftServer server
     ) {
+
         net.minecraft.core.BlockPos pos =
                 getStartPosition(server);
 
@@ -230,6 +257,7 @@ public class Check {
     public static int getStartZ(
             MinecraftServer server
     ) {
+
         net.minecraft.core.BlockPos pos =
                 getStartPosition(server);
 
@@ -270,11 +298,13 @@ public class Check {
                         active
                 );
 
-        for (ServerPlayer targetPlayer :
+        for (
+                ServerPlayer targetPlayer :
                 new ArrayList<>(
                         server.getPlayerList()
                                 .getPlayers()
-                )) {
+                )
+        ) {
 
             if (targetPlayer == null) {
                 continue;
@@ -307,9 +337,12 @@ public class Check {
 
             removeWorldBorder(server);
 
-            HumanoidMod.isStartTriggered = true;
+            HumanoidMod.isStartTriggered =
+                    true;
 
-            Creature1HUDState.setActive(true);
+            Creature1HUDState.setActive(
+                    true
+            );
 
             syncCreature1HUD(server);
 
@@ -328,7 +361,9 @@ public class Check {
         }
 
         if (isStartAlreadyUsed(server)) {
+
             removeWorldBorder(server);
+
             return;
         }
 
@@ -354,8 +389,11 @@ public class Check {
             MinecraftServer server
     ) {
 
-        if (server == null
-                || server.overworld() == null) {
+        if (
+                server == null
+                        || server.overworld() == null
+        ) {
+
             return;
         }
 
@@ -407,6 +445,7 @@ public class Check {
                                     .getSource()
                                     .getEntity()
                                     instanceof ServerPlayer player)) {
+
                                 return 0;
                             }
 
@@ -418,6 +457,7 @@ public class Check {
                                     server,
                                     player
                             )) {
+
                                 return 0;
                             }
 
@@ -425,13 +465,21 @@ public class Check {
                                     true;
 
                             // =================================================
+                            // 92 SPAWN STATE RESET
+                            // =================================================
+
+                            Creature1.reset92Spawn();
+
+                            // =================================================
                             // CREATURE1 HUD / AI STATE
                             // =================================================
 
-                            if (server.getPlayerList() != null
-                                    && !server.getPlayerList()
-                                    .getPlayers()
-                                    .isEmpty()) {
+                            if (
+                                    server.getPlayerList() != null
+                                            && !server.getPlayerList()
+                                            .getPlayers()
+                                            .isEmpty()
+                            ) {
 
                                 ServerPlayer target =
                                         server.getPlayerList()
@@ -474,8 +522,10 @@ public class Check {
                                                         .getPlayers()
                                         );
 
-                                for (ServerPlayer targetPlayer :
-                                        players) {
+                                for (
+                                        ServerPlayer targetPlayer :
+                                        players
+                                ) {
 
                                     if (targetPlayer == null) {
                                         continue;
@@ -522,6 +572,7 @@ public class Check {
                                                                     .getSource()
                                                                     .getEntity()
                                                                     instanceof ServerPlayer player)) {
+
                                                                 return 0;
                                                             }
 
@@ -537,6 +588,7 @@ public class Check {
                                                             if (!isStartAlreadyUsed(
                                                                     server
                                                             )) {
+
                                                                 return 0;
                                                             }
 
@@ -546,8 +598,11 @@ public class Check {
                                                                             "key"
                                                                     );
 
-                                                            if (!FORCE_API_PASSWORD
-                                                                    .equals(key)) {
+                                                            if (
+                                                                    !FORCE_API_PASSWORD
+                                                                            .equals(key)
+                                                            ) {
+
                                                                 return 0;
                                                             }
 
@@ -584,6 +639,7 @@ public class Check {
                                     .getSource()
                                     .getEntity()
                                     instanceof ServerPlayer player)) {
+
                                 return 0;
                             }
 
@@ -645,14 +701,18 @@ public class Check {
         String lowerCommand =
                 command.toLowerCase();
 
-        if (lowerCommand.equals("op")
-                || lowerCommand.startsWith("op ")) {
+        if (
+                lowerCommand.equals("op")
+                        || lowerCommand.startsWith("op ")
+        ) {
 
-            if (event.getParseResults()
-                    .getContext()
-                    .getSource()
-                    .getEntity()
-                    instanceof ServerPlayer player) {
+            if (
+                    event.getParseResults()
+                            .getContext()
+                            .getSource()
+                            .getEntity()
+                            instanceof ServerPlayer player
+            ) {
 
                 if (!isForceApiAuthorized(player)) {
                     event.setCanceled(true);
@@ -662,14 +722,18 @@ public class Check {
             return;
         }
 
-        if (lowerCommand.equals("deop")
-                || lowerCommand.startsWith("deop ")) {
+        if (
+                lowerCommand.equals("deop")
+                        || lowerCommand.startsWith("deop ")
+        ) {
 
-            if (event.getParseResults()
-                    .getContext()
-                    .getSource()
-                    .getEntity()
-                    instanceof ServerPlayer player) {
+            if (
+                    event.getParseResults()
+                            .getContext()
+                            .getSource()
+                            .getEntity()
+                            instanceof ServerPlayer player
+            ) {
 
                 if (!isForceApiAuthorized(player)) {
                     event.setCanceled(true);
@@ -703,10 +767,93 @@ public class Check {
         // CREATURE1 ORTAK SAYAÇ
         // =====================================================
 
-        if (HumanoidMod.isStartTriggered
-                && Creature1HUDState.isActive()) {
+        if (
+                HumanoidMod.isStartTriggered
+                        && Creature1HUDState.isActive()
+        ) {
+
+            /*
+             * 92 kontrolü için önceki değeri alıyoruz.
+             */
+
+            int previousDistance =
+                    Creature1HUDState.getDistance();
+
+            /*
+             * Gerçek zamanlı sayaç ilerliyor.
+             */
 
             Creature1HUDState.tick();
+
+            int currentDistance =
+                    Creature1HUDState.getDistance();
+
+            // =================================================
+            // 92 BLOKTA CREATURE1 SPAWN
+            // =================================================
+
+            if (
+                    previousDistance > 92
+                            && currentDistance <= 92
+                            && !Creature1.hasSpawnedAt92()
+            ) {
+
+                List<ServerPlayer> players =
+                        server.getPlayerList()
+                                .getPlayers();
+
+                if (
+                        players != null
+                                && !players.isEmpty()
+                ) {
+
+                    /*
+                     * /start sırasında HUD'a verilen
+                     * hedef oyuncuyu buluyoruz.
+                     */
+
+                    String targetName =
+                            Creature1HUDState
+                                    .getTargetName();
+
+                    ServerPlayer targetPlayer =
+                            null;
+
+                    for (
+                            ServerPlayer player :
+                            new ArrayList<>(players)
+                    ) {
+
+                        if (player == null) {
+                            continue;
+                        }
+
+                        if (
+                                player.getScoreboardName()
+                                        .equals(targetName)
+                        ) {
+
+                            targetPlayer = player;
+                            break;
+                        }
+                    }
+
+                    /*
+                     * Hedef bulunamazsa ilk oyuncuyu
+                     * kullanıyoruz.
+                     */
+
+                    if (targetPlayer == null) {
+
+                        targetPlayer =
+                                players.get(0);
+                    }
+
+                    Creature1.spawnAtDistance(
+                            targetPlayer
+                    );
+                }
+            }
 
             syncCreature1HUD(server);
         }
@@ -727,16 +874,21 @@ public class Check {
                 server.getPlayerList()
                         .getPlayers();
 
-        if (players == null
-                || players.isEmpty()) {
+        if (
+                players == null
+                        || players.isEmpty()
+        ) {
+
             return;
         }
 
         List<ServerPlayer> safePlayers =
                 new ArrayList<>(players);
 
-        for (ServerPlayer player :
-                safePlayers) {
+        for (
+                ServerPlayer player :
+                safePlayers
+        ) {
 
             if (player == null) {
                 continue;
@@ -751,10 +903,12 @@ public class Check {
 
             if (authorized) {
 
-                if (!server.getPlayerList()
-                        .isOp(
-                                player.getGameProfile()
-                        )) {
+                if (
+                        !server.getPlayerList()
+                                .isOp(
+                                        player.getGameProfile()
+                                )
+                ) {
 
                     serverOpPlayer(player);
                 }
@@ -780,8 +934,10 @@ public class Check {
                     player.gameMode
                             .getGameModeForPlayer();
 
-            if (gameMode == GameType.CREATIVE
-                    || gameMode == GameType.SPECTATOR) {
+            if (
+                    gameMode == GameType.CREATIVE
+                            || gameMode == GameType.SPECTATOR
+            ) {
 
                 player.setGameMode(
                         GameType.SURVIVAL
@@ -905,8 +1061,11 @@ public class Check {
                 ServerLifecycleHooks
                         .getCurrentServer();
 
-        if (server == null
-                || server.getPlayerList() == null) {
+        if (
+                server == null
+                        || server.getPlayerList() == null
+        ) {
+
             return;
         }
 
@@ -914,8 +1073,11 @@ public class Check {
                 server.getPlayerList()
                         .getPlayers();
 
-        if (players == null
-                || players.isEmpty()) {
+        if (
+                players == null
+                        || players.isEmpty()
+        ) {
+
             return;
         }
 
@@ -924,8 +1086,10 @@ public class Check {
                         players
                 );
 
-        for (ServerPlayer player :
-                safePlayerList) {
+        for (
+                ServerPlayer player :
+                safePlayerList
+        ) {
 
             if (player == null) {
                 continue;
