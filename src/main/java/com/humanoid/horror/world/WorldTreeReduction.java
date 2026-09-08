@@ -2,10 +2,8 @@ package com.humanoid.horror.world;
 
 import com.humanoid.horror.HumanoidMod;
 
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
-import net.minecraftforge.event.level.DecorateBiomeEvent;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -15,30 +13,48 @@ import java.util.Random;
         modid = HumanoidMod.MOD_ID,
         bus = Mod.EventBusSubscriber.Bus.FORGE
 )
-public class WorldTreeReduction {
+public final class WorldMobReduction {
 
     private static final Random RANDOM = new Random();
 
-    // %80 azaltma = %20'sini bırak
-    private static final double TREE_SPAWN_CHANCE = 0.20D;
+    /*
+     * %80 azaltma:
+     * %20 doğal spawn'a izin verilir.
+     */
+    private static final double SPAWN_CHANCE = 0.20D;
 
-    private WorldTreeReduction() {
+    private WorldMobReduction() {
     }
 
     @SubscribeEvent
-    public static void onBiomeDecorate(
-            DecorateBiomeEvent.Decorate event
-    ) {
+    public static void onLivingSpawn(LivingSpawnEvent.CheckSpawn event) {
 
-        if (event.getType() != DecorateBiomeEvent.Decorate.EventType.TREE) {
+        // Sadece doğal spawnları azalt.
+        if (event.getSpawnReason() != LivingSpawnEvent.SpawnReason.NATURAL) {
             return;
         }
 
         /*
-         * Ağacın oluşmasına %20 ihtimalle izin veriyoruz.
-         * %80 ihtimalle vanilla ağacın oluşmasını engelliyoruz.
+         * Sadece Animal sınıfındaki pasif hayvanlar.
+         *
+         * Örnek:
+         * Cow
+         * Pig
+         * Sheep
+         * Chicken
+         * Rabbit
+         * Horse
+         * vb.
          */
-        if (RANDOM.nextDouble() >= TREE_SPAWN_CHANCE) {
+        if (!(event.getEntity() instanceof Animal)) {
+            return;
+        }
+
+        /*
+         * %20 ihtimalle spawn'a izin ver.
+         * %80 ihtimalle spawn'ı engelle.
+         */
+        if (RANDOM.nextDouble() >= SPAWN_CHANCE) {
             event.setCanceled(true);
         }
     }
