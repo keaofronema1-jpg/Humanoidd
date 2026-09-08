@@ -4,8 +4,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.FixedBiomeSource;
-import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
-import net.minecraft.world.level.levelgen.WorldPresets;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,11 +11,13 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import java.util.Optional;
 
-@Mixin(WorldPresets.Registrar.class)
+@Mixin(
+        targets = "net.minecraft.world.level.levelgen.presets.WorldPresets$Registrar"
+)
 public abstract class PlainsOnlyWorldgen {
 
     @ModifyArg(
-            method = "createOverworldOptions",
+            method = "createOverworldOptions(Lnet/minecraft/world/level/biome/BiomeSource;Lnet/minecraft/core/Holder;)Lnet/minecraft/world/level/dimension/DimensionOptions;",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/level/levelgen/NoiseBasedChunkGenerator;<init>(Lnet/minecraft/world/level/biome/BiomeSource;Lnet/minecraft/core/Holder;)V"
@@ -27,6 +27,7 @@ public abstract class PlainsOnlyWorldgen {
     private BiomeSource humanoid$forcePlains(
             BiomeSource originalSource
     ) {
+
         Optional<Holder<Biome>> plains =
                 originalSource.possibleBiomes()
                         .stream()
