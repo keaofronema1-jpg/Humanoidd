@@ -3,16 +3,18 @@ package com.humanoid.horror.world;
 import com.humanoid.horror.HumanoidMod;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.TreeFeature;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
@@ -22,6 +24,7 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Supplier;
@@ -32,38 +35,42 @@ import java.util.function.Supplier;
 )
 public final class WorldTreeReduction {
 
-    private static final ResourceLocation HUMANOID_TREE =
+    private static final ResourceLocation TREE_STRUCTURE =
             new ResourceLocation(
                     HumanoidMod.MOD_ID,
                     "humanoidtree"
             );
 
     /*
-     * 600 tick = 30 saniye
+     * 30 saniyede bir yeni humanoidtree denemesi.
      */
     private static final int SPAWN_INTERVAL = 600;
 
     /*
-     * Ağacın oyuncudan maksimum uzaklığı.
-     *
-     * X: -1000 ... +1000
-     * Z: -1000 ... +1000
+     * Rastgele alan:
+     * oyuncudan -1000 / +1000 X-Z.
      */
     private static final int RANDOM_DISTANCE = 1000;
 
-    private static int tickCounter = 0;
+    private static final String DATA_NAME =
+            "humanoid_tree_data";
 
-    private static final Random RANDOM = new Random();
+    private static final Random RANDOM =
+            new Random();
+
+    private static int tickCounter = 0;
 
     private WorldTreeReduction() {
     }
 
     // =========================================================
-    // VANILLA AĞAÇLARINI TAMAMEN ENGELLE
+    // VANILLA AĞAÇLARINI ENGELLE
     // =========================================================
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onBiomeLoading(BiomeLoadingEvent event) {
+    public static void onBiomeLoading(
+            BiomeLoadingEvent event
+    ) {
 
         List<Supplier<ConfiguredFeature<?, ?>>> features =
                 event.getGeneration()
@@ -72,15 +79,17 @@ public final class WorldTreeReduction {
                         );
 
         /*
-         * Vegetal decoration içindeki bütün feature zincirlerini
-         * kontrol ediyoruz.
+         * Vanilla tree feature'larını tamamen kaldır.
          *
-         * TreeFeature içeren feature'lar tamamen kaldırılıyor.
+         * Bu sadece world generation feature'larını etkiler.
+         * Oyuncunun sonradan diktiği ağaçlara dokunmaz.
          */
-        features.removeIf(WorldTreeReduction::containsTreeFeature);
+        features.removeIf(
+                WorldTreeReduction::isTreeFeature
+        );
     }
 
-    private static boolean containsTreeFeature(
+    private static boolean isTreeFeature(
             Supplier<ConfiguredFeature<?, ?>> supplier
     ) {
 
@@ -88,39 +97,40 @@ public final class WorldTreeReduction {
             return false;
         }
 
-        ConfiguredFeature<?, ?> feature;
-
         try {
-            feature = supplier.get();
-        } catch (Exception ignored) {
-            return false;
-        }
 
-        if (feature == null) {
-            return false;
-        }
+            ConfiguredFeature<?, ?> feature =
+                    supplier.get();
 
-        /*
-         * Direkt vanilla TreeFeature.
-         */
-        if (feature.feature() instanceof TreeFeature) {
-            return true;
-        }
+            if (feature == null) {
+                return false;
+            }
 
-        /*
-         * Wrapped / decorated feature zincirlerini kontrol et.
-         */
-        try {
+            Feature<?> type =
+                    feature.feature();
+
+            /*
+             * Direkt TreeFeature.
+             */
+            if (type instanceof TreeFeature) {
+                return true;
+            }
+
+            /*
+             * Decorated / wrapped feature.
+             */
             return feature.getFeatures()
                     .anyMatch(
-                            WorldTreeReduction::containsTreeFeature
+                            WorldTreeReduction::isTreeFeature
                     );
+
         } catch (Exception ignored) {
+
             return false;
         }
     }
 
-    private static boolean containsTreeFeature(
+    private static boolean isTreeFeature(
             ConfiguredFeature<?, ?> feature
     ) {
 
@@ -128,22 +138,27 @@ public final class WorldTreeReduction {
             return false;
         }
 
-        if (feature.feature() instanceof TreeFeature) {
-            return true;
-        }
-
         try {
+
+            if (feature.feature()
+                    instanceof TreeFeature) {
+
+                return true;
+            }
+
             return feature.getFeatures()
                     .anyMatch(
-                            WorldTreeReduction::containsTreeFeature
+                            WorldTreeReduction::isTreeFeature
                     );
+
         } catch (Exception ignored) {
+
             return false;
         }
     }
 
     // =========================================================
-    // CUSTOM NBT AĞAÇ SİSTEMİ
+    // SERVER TICK
     // =========================================================
 
     @SubscribeEvent
@@ -155,14 +170,15 @@ public final class WorldTreeReduction {
             return;
         }
 
-        MinecraftServer server = event.getServer();
+        MinecraftServer server =
+                event.getServer();
 
         if (server == null) {
             return;
         }
 
         /*
-         * /start yapılmadan çalışmasın.
+         * /start yapılmadan sistem çalışmaz.
          */
         if (!HumanoidMod.isStartTriggered) {
             return;
@@ -191,24 +207,30 @@ public final class WorldTreeReduction {
         }
 
         /*
-         * Rastgele bir oyuncu seç.
+         * Rastgele oyuncu.
          */
         ServerPlayer player =
                 players.get(
                         RANDOM.nextInt(players.size())
                 );
 
-        spawnRandomTree(overworld, player);
+        spawnRandomTree(
+                overworld,
+                player
+        );
     }
 
     // =========================================================
-    // RASTGELE KONUM
+    // RASTGELE AĞAÇ
     // =========================================================
 
     private static void spawnRandomTree(
             ServerLevel level,
             ServerPlayer player
     ) {
+
+        HumanoidTreeData data =
+                HumanoidTreeData.get(level);
 
         int playerX =
                 player.blockPosition().getX();
@@ -230,6 +252,19 @@ public final class WorldTreeReduction {
                         )
                         - RANDOM_DISTANCE;
 
+        /*
+         * Chunk yüklü değilse o denemeyi atla.
+         */
+        if (!level.hasChunkAt(
+                new BlockPos(
+                        randomX,
+                        level.getMinBuildHeight(),
+                        randomZ
+                )
+        )) {
+            return;
+        }
+
         int surfaceY =
                 level.getHeight(
                         Heightmap.Types.WORLD_SURFACE,
@@ -248,24 +283,45 @@ public final class WorldTreeReduction {
                 groundPos.above();
 
         /*
-         * Uygun olmayan yüzeyde oluşturma.
+         * Uygun zemin değilse oluşturma.
          */
-        if (!isSuitableGround(level, groundPos)) {
+        if (!isSuitableGround(
+                level,
+                groundPos
+        )) {
             return;
         }
 
         /*
-         * Ağacın başlayacağı yer doluysa oluşturma.
+         * Ağacın başlangıç noktası doluysa oluşturma.
          */
         if (!level.isEmptyBlock(treePos)) {
             return;
         }
 
-        placeHumanoidTree(level, treePos);
+        /*
+         * Aynı konuma daha önce bizim ağacımız
+         * konduysa tekrar koyma.
+         */
+        if (data.hasTreeAt(treePos)) {
+            return;
+        }
+
+        /*
+         * NBT ağacını yerleştir.
+         */
+        if (placeTree(
+                level,
+                treePos
+        )) {
+
+            data.addTree(treePos);
+            data.setDirty();
+        }
     }
 
     // =========================================================
-    // ZEMİN KONTROLÜ
+    // ZEMİN
     // =========================================================
 
     private static boolean isSuitableGround(
@@ -277,36 +333,23 @@ public final class WorldTreeReduction {
             return false;
         }
 
-        if (level.getBlockState(pos).is(Blocks.WATER)) {
-            return false;
-        }
-
-        if (level.getBlockState(pos).is(Blocks.LAVA)) {
-            return false;
-        }
-
-        /*
-         * Normal toprak türleri.
-         */
-        if (level.getBlockState(pos).is(BlockTags.DIRT)) {
+        if (level.getBlockState(pos)
+                .is(Blocks.GRASS_BLOCK)) {
             return true;
         }
 
-        /*
-         * Çimen bloğu.
-         */
-        if (level.getBlockState(pos).is(Blocks.GRASS_BLOCK)) {
+        if (level.getBlockState(pos)
+                .is(Blocks.DIRT)) {
             return true;
         }
 
-        /*
-         * Podzol / mycelium gibi yüzeylerde de çalışsın.
-         */
-        if (level.getBlockState(pos).is(Blocks.PODZOL)) {
+        if (level.getBlockState(pos)
+                .is(Blocks.PODZOL)) {
             return true;
         }
 
-        if (level.getBlockState(pos).is(Blocks.MYCELIUM)) {
+        if (level.getBlockState(pos)
+                .is(Blocks.MYCELIUM)) {
             return true;
         }
 
@@ -314,17 +357,17 @@ public final class WorldTreeReduction {
     }
 
     // =========================================================
-    // NBT'Yİ YERLEŞTİR
+    // NBT TREE
     // =========================================================
 
-    private static void placeHumanoidTree(
+    private static boolean placeTree(
             ServerLevel level,
             BlockPos position
     ) {
 
         StructureTemplate template =
                 level.getStructureManager()
-                        .get(HUMANOID_TREE)
+                        .get(TREE_STRUCTURE)
                         .orElse(null);
 
         if (template == null) {
@@ -333,7 +376,7 @@ public final class WorldTreeReduction {
                     "[Humanoid] humanoidtree.nbt bulunamadı!"
             );
 
-            return;
+            return false;
         }
 
         try {
@@ -351,35 +394,151 @@ public final class WorldTreeReduction {
 
             settings.setIgnoreEntities(false);
 
-            boolean placed =
-                    template.placeInWorld(
-                            level,
-                            position,
-                            position,
-                            settings,
-                            level.random,
-                            2
-                    );
-
-            if (placed) {
-
-                System.out.println(
-                        "[Humanoid] humanoidtree oluşturuldu: "
-                                + position.getX()
-                                + ", "
-                                + position.getY()
-                                + ", "
-                                + position.getZ()
-                );
-            }
+            return template.placeInWorld(
+                    level,
+                    position,
+                    position,
+                    settings,
+                    level.random,
+                    2
+            );
 
         } catch (Exception exception) {
 
             System.err.println(
-                    "[Humanoid] humanoidtree oluşturulurken hata!"
+                    "[Humanoid] humanoidtree yerleştirme hatası!"
             );
 
             exception.printStackTrace();
+
+            return false;
+        }
+    }
+
+    // =========================================================
+    // SAVED DATA
+    // =========================================================
+
+    public static class HumanoidTreeData
+            extends net.minecraft.world.level.saveddata.SavedData {
+
+        private final List<BlockPos> trees =
+                new ArrayList<>();
+
+        public HumanoidTreeData() {
+        }
+
+        public static HumanoidTreeData load(
+                CompoundTag tag
+        ) {
+
+            HumanoidTreeData data =
+                    new HumanoidTreeData();
+
+            if (tag.contains(
+                    "Trees",
+                    9
+            )) {
+
+                ListTag list =
+                        tag.getList(
+                                "Trees",
+                                10
+                        );
+
+                for (int i = 0;
+                     i < list.size();
+                     i++) {
+
+                    CompoundTag tree =
+                            list.getCompound(i);
+
+                    BlockPos pos =
+                            new BlockPos(
+                                    tree.getInt("X"),
+                                    tree.getInt("Y"),
+                                    tree.getInt("Z")
+                            );
+
+                    data.trees.add(pos);
+                }
+            }
+
+            return data;
+        }
+
+        @Override
+        public CompoundTag save(
+                CompoundTag tag
+        ) {
+
+            ListTag list =
+                    new ListTag();
+
+            for (BlockPos pos : trees) {
+
+                CompoundTag tree =
+                        new CompoundTag();
+
+                tree.putInt(
+                        "X",
+                        pos.getX()
+                );
+
+                tree.putInt(
+                        "Y",
+                        pos.getY()
+                );
+
+                tree.putInt(
+                        "Z",
+                        pos.getZ()
+                );
+
+                list.add(tree);
+            }
+
+            tag.put(
+                    "Trees",
+                    list
+            );
+
+            return tag;
+        }
+
+        public boolean hasTreeAt(
+                BlockPos pos
+        ) {
+
+            for (BlockPos tree : trees) {
+
+                if (tree.equals(pos)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void addTree(
+                BlockPos pos
+        ) {
+
+            if (!hasTreeAt(pos)) {
+                trees.add(pos);
+            }
+        }
+
+        public static HumanoidTreeData get(
+                ServerLevel level
+        ) {
+
+            return level.getDataStorage()
+                    .computeIfAbsent(
+                            HumanoidTreeData::load,
+                            HumanoidTreeData::new,
+                            DATA_NAME
+                    );
         }
     }
 }
