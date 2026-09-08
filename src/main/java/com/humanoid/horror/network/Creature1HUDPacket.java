@@ -6,6 +6,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.network.NetworkEvent;
+
+import java.util.function.Supplier;
 
 public class Creature1HUDPacket {
 
@@ -55,8 +58,11 @@ public class Creature1HUDPacket {
     // =========================================================
 
     public void handle(
-            net.minecraftforge.network.NetworkEvent.Context context
+            Supplier<NetworkEvent.Context> supplier
     ) {
+
+        NetworkEvent.Context context =
+                supplier.get();
 
         context.enqueueWork(() -> {
 
@@ -76,11 +82,6 @@ public class Creature1HUDPacket {
                                 active
                         );
 
-                        /*
-                         * Minecraft instance'ın client tarafında
-                         * hazır olduğundan emin olmak için çağrı
-                         * burada tutuluyor.
-                         */
                         Minecraft minecraft =
                                 Minecraft.getInstance();
 
