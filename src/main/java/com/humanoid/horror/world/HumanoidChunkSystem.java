@@ -15,7 +15,6 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
-import java.util.Random;
 
 @Mod.EventBusSubscriber(
         modid = HumanoidMod.MOD_ID,
@@ -23,70 +22,25 @@ import java.util.Random;
 )
 public final class HumanoidChunkSystem {
 
-    // =========================================================
-    // AYARLAR
-    // =========================================================
-
-    /*
-     * 16 x 16 chunk.
-     *
-     * Toplam:
-     * 16 * 16 = 256 chunk
-     */
     private static final int AREA_CHUNKS = 16;
 
-    /*
-     * /start noktasından alanın başlangıcına uzaklık.
-     */
     private static final int START_DISTANCE = 200;
 
-    /*
-     * Her server tickinde en fazla kaç chunk işlenecek.
-     *
-     * 2 chunk/tick:
-     * 20 tick = yaklaşık 10 chunk/saniye
-     *
-     * 256 chunk ≈ 26 saniye.
-     */
     private static final int CHUNKS_PER_TICK = 2;
 
-    /*
-     * Üst kopyanın başlangıcı.
-     *
-     * Orijinal chunkın üst sınırından sonra
-     * mümkün olan ilk Y seviyesi.
-     */
     private static final int WORLD_MIN_Y = -64;
     private static final int WORLD_MAX_Y = 319;
 
-    /*
-     * ORE -> STONE.
-     */
     private static final BlockState ORE_REPLACEMENT =
             Blocks.STONE.defaultBlockState();
 
-    private static final Random RANDOM =
-            new Random();
-
-    /*
-     * İşlenecek chunk kuyruğu.
-     */
     private static final Queue<ChunkPosition> CHUNK_QUEUE =
             new ArrayDeque<>();
 
-    /*
-     * Sistem başlatıldı mı?
-     */
     private static boolean started = false;
 
-    /*
-     * Sistem tamamen bitti mi?
-     */
     private static boolean finished = false;
 
-    /*
-     * Son işlemin hangi dünyada olduğunu takip ediyoruz.
-     */
     private static ServerLevel activeLevel = null;
 
     private HumanoidChunkSystem() {
@@ -112,9 +66,6 @@ public final class HumanoidChunkSystem {
             return;
         }
 
-        /*
-         * /start olmadan sistem çalışmaz.
-         */
         if (!HumanoidMod.isStartTriggered) {
             return;
         }
@@ -126,9 +77,6 @@ public final class HumanoidChunkSystem {
             return;
         }
 
-        /*
-         * Sistem ilk kez çalışıyorsa başlat.
-         */
         if (!started) {
 
             startSystem(
@@ -139,16 +87,10 @@ public final class HumanoidChunkSystem {
             return;
         }
 
-        /*
-         * Daha önce tamamlandıysa hiçbir şey yapma.
-         */
         if (finished) {
             return;
         }
 
-        /*
-         * Her tick sınırlı sayıda chunk işle.
-         */
         for (int i = 0;
              i < CHUNKS_PER_TICK;
              i++) {
@@ -160,7 +102,7 @@ public final class HumanoidChunkSystem {
 
                 finished = true;
 
-                HumanoidMod.LOGGER.info(
+                System.out.println(
                         "[HumanoidChunkSystem] " +
                         "16x16 chunk sistemi tamamlandı."
                 );
@@ -188,13 +130,9 @@ public final class HumanoidChunkSystem {
         BlockPos startPos =
                 Check.getStartPosition(server);
 
-        /*
-         * /start koordinatı bulunamadıysa
-         * sistemi başlatma.
-         */
         if (startPos == null) {
 
-            HumanoidMod.LOGGER.warn(
+            System.err.println(
                     "[HumanoidChunkSystem] " +
                     "Start koordinatı bulunamadı."
             );
@@ -202,9 +140,6 @@ public final class HumanoidChunkSystem {
             return;
         }
 
-        /*
-         * 200 blok doğu.
-         */
         BlockPos areaStart =
                 new BlockPos(
                         startPos.getX()
@@ -213,9 +148,6 @@ public final class HumanoidChunkSystem {
                         startPos.getZ()
                 );
 
-        /*
-         * Chunk koordinatına çevir.
-         */
         int startChunkX =
                 Math.floorDiv(
                         areaStart.getX(),
@@ -228,9 +160,6 @@ public final class HumanoidChunkSystem {
                         16
                 );
 
-        /*
-         * 16x16 chunk alanını oluştur.
-         */
         CHUNK_QUEUE.clear();
 
         for (int x = 0;
@@ -256,15 +185,17 @@ public final class HumanoidChunkSystem {
         started = true;
         finished = false;
 
-        HumanoidMod.LOGGER.info(
+        System.out.println(
                 "[HumanoidChunkSystem] " +
-                "Başladı. Start={}, AreaStart={}, " +
-                "ChunkStart=({},{}), " +
-                "Toplam=256",
-                startPos,
-                areaStart,
-                startChunkX,
-                startChunkZ
+                "Başladı. Start=" +
+                startPos +
+                ", AreaStart=" +
+                areaStart +
+                ", ChunkStart=(" +
+                startChunkX +
+                "," +
+                startChunkZ +
+                "), Toplam=256"
         );
     }
 
@@ -282,9 +213,6 @@ public final class HumanoidChunkSystem {
             return;
         }
 
-        /*
-         * Chunk'ı oluştur/yükle.
-         */
         level.getChunk(
                 chunkX,
                 chunkZ
@@ -302,11 +230,6 @@ public final class HumanoidChunkSystem {
         int maxBlockZ =
                 minBlockZ + 15;
 
-        /*
-         * Chunkın gerçek üst yüzeyini bul.
-         *
-         * Bedrock dahil edilmez.
-         */
         int highestY =
                 findHighestNonBedrockBlock(
                         level,
@@ -316,30 +239,17 @@ public final class HumanoidChunkSystem {
                         maxBlockZ
                 );
 
-        /*
-         * Hiçbir blok bulunamadıysa geç.
-         */
         if (highestY < WORLD_MIN_Y) {
             return;
         }
 
-        /*
-         * Chunkın üst tarafına kopyanın başlayacağı Y.
-         */
         int copyStartY =
                 highestY + 1;
 
-        /*
-         * Kopyalama için üst sınır.
-         */
         if (copyStartY > WORLD_MAX_Y) {
             return;
         }
 
-        /*
-         * Orijinal chunkı yukarı doğru
-         * tek sefer kopyalıyoruz.
-         */
         copyChunkUp(
                 level,
                 minBlockX,
@@ -350,11 +260,13 @@ public final class HumanoidChunkSystem {
                 copyStartY
         );
 
-        HumanoidMod.LOGGER.info(
+        System.out.println(
                 "[HumanoidChunkSystem] " +
-                "Chunk işlendi: ({},{})",
-                chunkX,
-                chunkZ
+                "Chunk işlendi: (" +
+                chunkX +
+                "," +
+                chunkZ +
+                ")"
         );
     }
 
@@ -373,11 +285,6 @@ public final class HumanoidChunkSystem {
         int highest =
                 WORLD_MIN_Y - 1;
 
-        /*
-         * 319'dan aşağı doğru tarıyoruz.
-         *
-         * İlk uygun blok bulunduğunda duruyoruz.
-         */
         for (int y = WORLD_MAX_Y;
              y >= WORLD_MIN_Y;
              y--) {
@@ -405,9 +312,6 @@ public final class HumanoidChunkSystem {
                         continue;
                     }
 
-                    /*
-                     * Bedrock üst kopyaya dahil edilmiyor.
-                     */
                     if (state.is(Blocks.BEDROCK)) {
                         continue;
                     }
@@ -444,22 +348,12 @@ public final class HumanoidChunkSystem {
             int copyStartY
     ) {
 
-        /*
-         * Orijinal yüksekliği:
-         *
-         * WORLD_MIN_Y -> highestY
-         *
-         * Ancak bedrock kopyalanmayacak.
-         */
         int sourceMinY =
                 WORLD_MIN_Y;
 
         int sourceMaxY =
                 highestY;
 
-        /*
-         * Kaç blok yüksekliği kopyalayacağız?
-         */
         int height =
                 sourceMaxY
                         - sourceMinY
@@ -469,9 +363,6 @@ public final class HumanoidChunkSystem {
             return;
         }
 
-        /*
-         * Dünya sınırını aşma.
-         */
         int maxTargetY =
                 copyStartY
                         + height
@@ -489,22 +380,13 @@ public final class HumanoidChunkSystem {
             }
         }
 
-        /*
-         * ÖNEMLİ:
-         *
-         * Önce blokları geçici olarak tek chunk
-         * seviyesinde tutuyoruz.
-         *
-         * Aynı anda 1024 chunk yok.
-         */
         BlockState[][][] states =
                 new BlockState[16][height][16];
 
-        /*
-         * =====================================================
-         * 1. OKU
-         * =====================================================
-         */
+        // =====================================================
+        // 1. OKU
+        // =====================================================
+
         for (int localX = 0;
              localX < 16;
              localX++) {
@@ -533,13 +415,7 @@ public final class HumanoidChunkSystem {
                                     sourcePos
                             );
 
-                    /*
-                     * BEDROCK:
-                     * Üst kopyaya alınmıyor.
-                     */
-                    if (state.is(
-                            Blocks.BEDROCK
-                    )) {
+                    if (state.is(Blocks.BEDROCK)) {
 
                         states[
                                 localX
@@ -554,12 +430,6 @@ public final class HumanoidChunkSystem {
                         continue;
                     }
 
-                    /*
-                     * =================================================
-                     * CEVHER:
-                     * Üst kopyada taş olacak.
-                     * =================================================
-                     */
                     if (isOre(state)) {
 
                         states[
@@ -574,9 +444,6 @@ public final class HumanoidChunkSystem {
                         continue;
                     }
 
-                    /*
-                     * Normal blok.
-                     */
                     states[
                             localX
                     ][
@@ -589,11 +456,10 @@ public final class HumanoidChunkSystem {
             }
         }
 
-        /*
-         * =====================================================
-         * 2. KOPYALA / YERLEŞTİR
-         * =====================================================
-         */
+        // =====================================================
+        // 2. KOPYALA / YERLEŞTİR
+        // =====================================================
+
         for (int localX = 0;
              localX < 16;
              localX++) {
@@ -623,10 +489,8 @@ public final class HumanoidChunkSystem {
                                     localZ
                             ];
 
-                    /*
-                     * AIR ise blok yerleştirmiyoruz.
-                     */
-                    if (state.isAir()) {
+                    if (state == null
+                            || state.isAir()) {
                         continue;
                     }
 
@@ -646,14 +510,6 @@ public final class HumanoidChunkSystem {
             }
         }
 
-        /*
-         * =====================================================
-         * 3. BELLEKTEN BIRAK
-         * =====================================================
-         *
-         * Java'nın GC'si states dizisini daha sonra
-         * temizleyebilir.
-         */
         states = null;
     }
 
@@ -665,66 +521,29 @@ public final class HumanoidChunkSystem {
             BlockState state
     ) {
 
-        return state.is(
-                Blocks.COAL_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_COAL_ORE
-        )
-                || state.is(
-                Blocks.IRON_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_IRON_ORE
-        )
-                || state.is(
-                Blocks.COPPER_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_COPPER_ORE
-        )
-                || state.is(
-                Blocks.GOLD_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_GOLD_ORE
-        )
-                || state.is(
-                Blocks.REDSTONE_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_REDSTONE_ORE
-        )
-                || state.is(
-                Blocks.LAPIS_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_LAPIS_ORE
-        )
-                || state.is(
-                Blocks.DIAMOND_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_DIAMOND_ORE
-        )
-                || state.is(
-                Blocks.EMERALD_ORE
-        )
-                || state.is(
-                Blocks.DEEPSLATE_EMERALD_ORE
-        )
-                || state.is(
-                Blocks.ANCIENT_DEBRIS
-        );
+        return state.is(Blocks.COAL_ORE)
+                || state.is(Blocks.DEEPSLATE_COAL_ORE)
+                || state.is(Blocks.IRON_ORE)
+                || state.is(Blocks.DEEPSLATE_IRON_ORE)
+                || state.is(Blocks.COPPER_ORE)
+                || state.is(Blocks.DEEPSLATE_COPPER_ORE)
+                || state.is(Blocks.GOLD_ORE)
+                || state.is(Blocks.DEEPSLATE_GOLD_ORE)
+                || state.is(Blocks.REDSTONE_ORE)
+                || state.is(Blocks.DEEPSLATE_REDSTONE_ORE)
+                || state.is(Blocks.LAPIS_ORE)
+                || state.is(Blocks.DEEPSLATE_LAPIS_ORE)
+                || state.is(Blocks.DIAMOND_ORE)
+                || state.is(Blocks.DEEPSLATE_DIAMOND_ORE)
+                || state.is(Blocks.EMERALD_ORE)
+                || state.is(Blocks.DEEPSLATE_EMERALD_ORE)
+                || state.is(Blocks.ANCIENT_DEBRIS);
     }
 
     // =========================================================
     // RESET
     // =========================================================
 
-    /*
-     * Gerekirse başka sistemlerden resetlenebilir.
-     */
     public static void reset() {
 
         CHUNK_QUEUE.clear();
