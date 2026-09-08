@@ -1,5 +1,7 @@
 package com.humanoid.horror;
 
+import com.humanoid.horror.entity.Creature1;
+import com.humanoid.horror.entity.Creature2;
 import com.humanoid.horror.entity.Creature3;
 import com.humanoid.horror.network.HumanoidNetwork;
 import com.humanoid.horror.network.ModMessages;
@@ -83,7 +85,10 @@ public class HumanoidMod {
             EntityAttributeCreationEvent event
     ) {
 
-        // Humanoid
+        // =====================================================
+        // HUMANOID
+        // =====================================================
+
         event.put(
                 ModEntities.HUMANOID.get(),
                 net.minecraft.world.entity.monster.Monster
@@ -107,7 +112,28 @@ public class HumanoidMod {
                         .build()
         );
 
-        // Creature3
+        // =====================================================
+        // CREATURE1
+        // =====================================================
+
+        event.put(
+                ModEntities.CREATURE1.get(),
+                Creature1.createAttributes().build()
+        );
+
+        // =====================================================
+        // CREATURE2
+        // =====================================================
+
+        event.put(
+                ModEntities.CREATURE2.get(),
+                Creature2.createAttributes().build()
+        );
+
+        // =====================================================
+        // CREATURE3
+        // =====================================================
+
         event.put(
                 ModEntities.CREATURE3.get(),
                 Creature3.createAttributes().build()
