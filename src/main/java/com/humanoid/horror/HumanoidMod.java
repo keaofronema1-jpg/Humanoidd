@@ -1,6 +1,7 @@
 package com.humanoid.horror;
 
 import com.humanoid.horror.entity.Creature3;
+import com.humanoid.horror.network.HumanoidNetwork;
 import com.humanoid.horror.network.ModMessages;
 import com.humanoid.horror.registry.ModBlocks;
 import com.humanoid.horror.registry.ModEntities;
@@ -64,8 +65,11 @@ public class HumanoidMod {
 
         event.enqueueWork(() -> {
 
-            // Network sistemi
+            // Ana network sistemi
             ModMessages.register();
+
+            // Dimension2 network sistemi
+            HumanoidNetwork.register();
 
         });
     }
