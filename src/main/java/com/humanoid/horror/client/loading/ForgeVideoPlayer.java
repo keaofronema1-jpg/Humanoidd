@@ -24,7 +24,7 @@ public final class ForgeVideoPlayer {
     private static final ResourceLocation FORGE_SOUND =
             new ResourceLocation(
                     "humanoid",
-                    "forge_intro"
+                    "forge"
             );
 
     private static final SoundEvent FORGE_SOUND_EVENT =
