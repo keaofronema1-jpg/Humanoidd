@@ -2,6 +2,7 @@ package com.humanoid.horror.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
@@ -12,6 +13,7 @@ import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 
 public class Creature1Model<T extends Entity> extends EntityModel<T> {
@@ -185,7 +187,236 @@ public class Creature1Model<T extends Entity> extends EntityModel<T> {
             float netHeadYaw,
             float headPitch
     ) {
-        // Şimdilik animasyon yok.
+
+        /*
+         * ============================================================
+         * RESET
+         * ============================================================
+         *
+         * Her frame başında eski animasyon değerlerini temizliyoruz.
+         * Böylece idle/walk/run/attack birbirinin üzerine bozulmuş
+         * şekilde binmiyor.
+         */
+
+        this.head.xRot = 0.0F;
+        this.head.yRot = 0.0F;
+        this.head.zRot = 0.0F;
+
+        this.body.xRot = 0.0F;
+        this.body.yRot = 0.0F;
+        this.body.zRot = 0.0F;
+
+        this.waist.xRot = 0.0F;
+        this.waist.yRot = 0.0F;
+        this.waist.zRot = 0.0F;
+
+        this.rightArm.xRot = 0.0F;
+        this.rightArm.yRot = 0.0F;
+        this.rightArm.zRot = 0.0F;
+
+        this.leftArm.xRot = 0.0F;
+        this.leftArm.yRot = 0.0F;
+        this.leftArm.zRot = 0.0F;
+
+        this.rightLeg.xRot = 0.0F;
+        this.rightLeg.yRot = 0.0F;
+        this.rightLeg.zRot = 0.0F;
+
+        this.leftLeg.xRot = 0.0F;
+        this.leftLeg.yRot = 0.0F;
+        this.leftLeg.zRot = 0.0F;
+
+
+        /*
+         * ============================================================
+         * HEAD LOOK
+         * ============================================================
+         *
+         * Vanilla humanoid mantığı:
+         * netHeadYaw = sağ/sol
+         * headPitch  = yukarı/aşağı
+         */
+
+        this.head.yRot = netHeadYaw * Mth.DEG_TO_RAD;
+        this.head.xRot = headPitch * Mth.DEG_TO_RAD;
+
+
+        /*
+         * ============================================================
+         * IDLE
+         * ============================================================
+         *
+         * Creature tamamen hareketsizken çok hafif nefes alma
+         * hareketi.
+         */
+
+        float idle = ageInTicks * 0.08F;
+
+        this.body.xRot += Mth.sin(idle) * 0.025F;
+
+        this.head.zRot += Mth.sin(idle * 0.7F) * 0.015F;
+
+        this.rightArm.zRot += Mth.sin(idle) * 0.01F;
+        this.leftArm.zRot -= Mth.sin(idle) * 0.01F;
+
+
+        /*
+         * ============================================================
+         * WALK / RUN
+         * ============================================================
+         *
+         * limbSwing       = hareket animasyonunun zamanı
+         * limbSwingAmount = hareket miktarı
+         *
+         * Hareket miktarı yüksek olduğunda Creature1'i daha agresif
+         * koşturuyoruz.
+         */
+
+        float movement = Mth.clamp(limbSwingAmount, 0.0F, 1.0F);
+
+        boolean running = movement > 0.65F;
+
+        float swingSpeed;
+        float swingPower;
+
+        if (running) {
+            swingSpeed = 0.95F;
+            swingPower = 1.65F;
+        } else {
+            swingSpeed = 0.6662F;
+            swingPower = 1.4F;
+        }
+
+        float walkCycle = limbSwing * swingSpeed;
+
+        /*
+         * Bacaklar
+         *
+         * Sağ ve sol bacak birbirinin ters fazında.
+         */
+        this.rightLeg.xRot =
+                Mth.cos(walkCycle) * swingPower * movement;
+
+        this.leftLeg.xRot =
+                Mth.cos(walkCycle + Mth.PI) * swingPower * movement;
+
+
+        /*
+         * Kollar
+         *
+         * Bacakların tam ters yönünde sallanıyorlar.
+         */
+        this.rightArm.xRot =
+                Mth.cos(walkCycle + Mth.PI)
+                        * swingPower
+                        * 0.75F
+                        * movement;
+
+        this.leftArm.xRot =
+                Mth.cos(walkCycle)
+                        * swingPower
+                        * 0.75F
+                        * movement;
+
+
+        /*
+         * ============================================================
+         * RUN BODY MOVEMENT
+         * ============================================================
+         *
+         * Koşarken Creature1 hafifçe öne eğiliyor.
+         */
+
+        if (running) {
+
+            this.body.xRot += 0.16F;
+
+            this.head.xRot -= 0.08F;
+
+            this.rightArm.xRot *= 1.20F;
+            this.leftArm.xRot *= 1.20F;
+
+            this.rightLeg.xRot *= 1.10F;
+            this.leftLeg.xRot *= 1.10F;
+        }
+
+
+        /*
+         * ============================================================
+         * ATTACK
+         * ============================================================
+         *
+         * EntityModel.attackTime vanilla saldırı animasyonu için
+         * kullanılan değerdir.
+         *
+         * 0.0 = saldırmıyor
+         * 1.0 = saldırının ortasında
+         */
+
+        if (this.attackTime > 0.0F) {
+
+            float attackProgress = this.attackTime;
+
+            float attackSwing =
+                    Mth.sin(
+                            attackProgress * Mth.PI
+                    );
+
+            /*
+             * Gövdeyi hafifçe hedefe doğru çevir.
+             */
+            this.body.xRot -= attackSwing * 0.25F;
+
+            /*
+             * Sağ kolu öne kaldır.
+             */
+            this.rightArm.xRot -=
+                    attackSwing * 2.0F;
+
+            /*
+             * Sol kol da destek hareketi yapıyor.
+             */
+            this.leftArm.xRot -=
+                    attackSwing * 0.75F;
+
+            /*
+             * Saldırı sırasında kolları hafif yana aç.
+             */
+            this.rightArm.zRot +=
+                    attackSwing * 0.12F;
+
+            this.leftArm.zRot -=
+                    attackSwing * 0.12F;
+
+            /*
+             * Saldırı sırasında kafa hafifçe öne.
+             */
+            this.head.xRot -=
+                    attackSwing * 0.15F;
+        }
+
+
+        /*
+         * ============================================================
+         * HORROR MOVEMENT
+         * ============================================================
+         *
+         * Creature1'in hareketini normal Steve'den biraz daha
+         * rahatsız edici hale getiriyoruz.
+         */
+
+        if (movement > 0.05F && this.attackTime <= 0.0F) {
+
+            float horrorSway =
+                    Mth.sin(limbSwing * 0.45F)
+                            * movement;
+
+            this.body.zRot +=
+                    horrorSway * 0.035F;
+
+            this.head.zRot -=
+                    horrorSway * 0.05F;
+        }
     }
 
     @Override
