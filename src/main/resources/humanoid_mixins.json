@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "com.humanoid.horror.mixin",
   "compatibilityLevel": "JAVA_17",
+  "refmap": "mixins.humanoid.refmap.json",
   "mixins": [
     "PlainsOnlyWorldgen"
   ],
