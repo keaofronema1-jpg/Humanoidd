@@ -17,7 +17,10 @@ public class ModSounds {
                     HumanoidMod.MOD_ID
             );
 
+    // =========================================================
     // scare.ogg
+    // =========================================================
+
     public static final RegistryObject<SoundEvent> SCARE =
             SOUNDS.register(
                     "scare",
@@ -29,7 +32,10 @@ public class ModSounds {
                     )
             );
 
+    // =========================================================
     // wep.ogg
+    // =========================================================
+
     public static final RegistryObject<SoundEvent> WEP =
             SOUNDS.register(
                     "wep",
@@ -41,7 +47,10 @@ public class ModSounds {
                     )
             );
 
+    // =========================================================
     // cont.ogg
+    // =========================================================
+
     public static final RegistryObject<SoundEvent> CONT =
             SOUNDS.register(
                     "cont",
@@ -53,7 +62,10 @@ public class ModSounds {
                     )
             );
 
+    // =========================================================
     // dimension2music.ogg
+    // =========================================================
+
     public static final RegistryObject<SoundEvent> DIMENSION2_MUSIC =
             SOUNDS.register(
                     "dimension2music",
@@ -65,7 +77,10 @@ public class ModSounds {
                     )
             );
 
+    // =========================================================
     // dimension2music2.ogg
+    // =========================================================
+
     public static final RegistryObject<SoundEvent> DIMENSION2_MUSIC2 =
             SOUNDS.register(
                     "dimension2music2",
@@ -77,7 +92,10 @@ public class ModSounds {
                     )
             );
 
+    // =========================================================
     // entity.ogg
+    // =========================================================
+
     public static final RegistryObject<SoundEvent> PHOTO_ENTITY =
             SOUNDS.register(
                     "entity",
@@ -89,7 +107,10 @@ public class ModSounds {
                     )
             );
 
+    // =========================================================
     // random.ogg
+    // =========================================================
+
     public static final RegistryObject<SoundEvent> RANDOM =
             SOUNDS.register(
                     "random",
@@ -97,6 +118,21 @@ public class ModSounds {
                             new ResourceLocation(
                                     HumanoidMod.MOD_ID,
                                     "random"
+                            )
+                    )
+            );
+
+    // =========================================================
+    // forge.ogg
+    // =========================================================
+
+    public static final RegistryObject<SoundEvent> FORGE_INTRO =
+            SOUNDS.register(
+                    "forge_intro",
+                    () -> SoundEvent.createVariableRangeEvent(
+                            new ResourceLocation(
+                                    HumanoidMod.MOD_ID,
+                                    "forge_intro"
                             )
                     )
             );
