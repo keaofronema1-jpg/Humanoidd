@@ -14,8 +14,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.structure.templatesystem.StructurePlaceSettings;
-import net.minecraft.world.level.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.levelgen.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.templatesystem.StructureTemplate;
 
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
