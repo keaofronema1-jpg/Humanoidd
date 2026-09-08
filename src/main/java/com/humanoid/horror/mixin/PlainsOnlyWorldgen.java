@@ -4,8 +4,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.FixedBiomeSource;
-import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,32 +11,55 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import java.util.Optional;
 
-@Mixin(NoiseBasedChunkGenerator.class)
+@Mixin(
+        target = "net.minecraft.world.level.levelgen.WorldPresets$Registrar"
+)
 public abstract class PlainsOnlyWorldgen {
 
+    /**
+     * Sadece Overworld oluşturulurken kullanılan
+     * BiomeSource'u Plains'e sabitler.
+     *
+     * Nether, End ve diğer custom dimension'ların
+     * NoiseBasedChunkGenerator'larına dokunmaz.
+     */
     @ModifyArg(
-            method = "<init>",
+            method = "createOverworldOptions",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/level/chunk/ChunkGenerator;<init>(Lnet/minecraft/world/level/biome/BiomeSource;)V"
+                    target = "Lnet/minecraft/world/level/levelgen/NoiseBasedChunkGenerator;<init>(Lnet/minecraft/world/level/biome/BiomeSource;Lnet/minecraft/core/Holder;)V"
             ),
             index = 0
     )
-    private static BiomeSource humanoid$forcePlains(BiomeSource originalSource) {
+    private BiomeSource humanoid$forcePlains(
+            BiomeSource originalSource
+    ) {
 
-        Optional<Holder<Biome>> plains = originalSource
-                .possibleBiomes()
-                .stream()
-                .filter(holder -> holder.unwrapKey()
-                        .map(key -> key.location().toString().equals("minecraft:plains"))
-                        .orElse(false))
-                .findFirst();
+        Optional<Holder<Biome>> plains =
+                originalSource
+                        .possibleBiomes()
+                        .stream()
+                        .filter(holder ->
+                                holder.unwrapKey()
+                                        .map(key ->
+                                                key.location()
+                                                        .toString()
+                                                        .equals("minecraft:plains")
+                                        )
+                                        .orElse(false)
+                        )
+                        .findFirst();
 
         if (plains.isPresent()) {
-            return new FixedBiomeSource(plains.get());
+            return new FixedBiomeSource(
+                    plains.get()
+            );
         }
 
-        // Güvenlik: Plains bulunamazsa vanilla biome source'u bozma.
+        /*
+         * Plains holder bulunamazsa dünya oluşturmayı
+         * çökertmek yerine vanilla source'u koru.
+         */
         return originalSource;
     }
 }
