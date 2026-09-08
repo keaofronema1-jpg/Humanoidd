@@ -33,15 +33,18 @@ public abstract class PlainsOnlyWorldgen {
                         .filter(holder ->
                                 holder.unwrapKey()
                                         .map(key ->
-                                                key.location().toString()
+                                                key.location()
+                                                        .toString()
                                                         .equals("minecraft:plains")
                                         )
                                         .orElse(false)
                         )
                         .findFirst();
 
-        return plains
-                .map(FixedBiomeSource::new)
-                .orElse(originalSource);
+        if (plains.isPresent()) {
+            return new FixedBiomeSource(plains.get());
+        }
+
+        return originalSource;
     }
 }
