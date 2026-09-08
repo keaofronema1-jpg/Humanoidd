@@ -3,6 +3,7 @@ package com.humanoid.horror.client.loading;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 
 public final class ForgeVideoPlayer {
 
@@ -24,6 +25,11 @@ public final class ForgeVideoPlayer {
             new ResourceLocation(
                     "humanoid",
                     "forge_intro"
+            );
+
+    private static final SoundEvent FORGE_SOUND_EVENT =
+            SoundEvent.createVariableRangeEvent(
+                    FORGE_SOUND
             );
 
     private static boolean started = false;
@@ -132,7 +138,7 @@ public final class ForgeVideoPlayer {
 
             minecraft.getSoundManager().play(
                     SimpleSoundInstance.forUI(
-                            FORGE_SOUND,
+                            FORGE_SOUND_EVENT,
                             1.0F
                     )
             );
