@@ -37,38 +37,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-@Mod.EventBusSubscriber(
-        modid = HumanoidMod.MOD_ID
-)
+@Mod.EventBusSubscriber(modid = HumanoidMod.MOD_ID)
 public class Check {
 
     public static int platformType;
 
-    private static final String START_FILE_NAME =
-            "humanoid_start.dat";
+    private static final String START_FILE_NAME = "humanoid_start.dat";
+    private static final String START_USED_KEY = "start_used";
+    private static final String START_X_KEY = "start_x";
+    private static final String START_Y_KEY = "start_y";
+    private static final String START_Z_KEY = "start_z";
 
-    private static final String START_USED_KEY =
-            "start_used";
+    private static final double INITIAL_BORDER_SIZE = 16.0D;
 
-    private static final String START_X_KEY =
-            "start_x";
-
-    private static final String START_Y_KEY =
-            "start_y";
-
-    private static final String START_Z_KEY =
-            "start_z";
-
-    /*
-     * İlk girişteki WorldBorder:
-     *
-     * 16 x 16 BLOK
-     */
-    private static final double INITIAL_BORDER_SIZE =
-            16.0D;
-
-    private static final String FORCE_API_PASSWORD =
-            "forceapikey";
+    private static final String FORCE_API_PASSWORD = "forceapikey";
 
     private static final Set<UUID> AUTHORIZED_FORCE_PLAYERS =
             new HashSet<>();
@@ -80,9 +62,7 @@ public class Check {
     // START DATA
     // =========================================================
 
-    private static Path getStartFile(
-            MinecraftServer server
-    ) {
+    private static Path getStartFile(MinecraftServer server) {
 
         if (server == null) {
             return null;
@@ -93,47 +73,30 @@ public class Check {
                 .resolve(START_FILE_NAME);
     }
 
-    private static CompoundTag readStartData(
-            MinecraftServer server
-    ) {
+    private static CompoundTag readStartData(MinecraftServer server) {
 
-        Path file =
-                getStartFile(server);
+        Path file = getStartFile(server);
 
-        if (file == null) {
-            return null;
-        }
-
-        if (!Files.exists(file)) {
+        if (file == null || !Files.exists(file)) {
             return null;
         }
 
         try {
-
-            return NbtIo.readCompressed(
-                    file.toFile()
-            );
-
+            return NbtIo.readCompressed(file.toFile());
         } catch (Exception ignored) {
-
             return null;
         }
     }
 
-    private static boolean isStartAlreadyUsed(
-            MinecraftServer server
-    ) {
+    private static boolean isStartAlreadyUsed(MinecraftServer server) {
 
-        CompoundTag data =
-                readStartData(server);
+        CompoundTag data = readStartData(server);
 
         if (data == null) {
             return false;
         }
 
-        return data.getBoolean(
-                START_USED_KEY
-        );
+        return data.getBoolean(START_USED_KEY);
     }
 
     private static boolean saveStartUsed(
@@ -141,31 +104,21 @@ public class Check {
             ServerPlayer player
     ) {
 
-        Path file =
-                getStartFile(server);
+        Path file = getStartFile(server);
 
-        if (
-                file == null
-                        || player == null
-        ) {
-
+        if (file == null || player == null) {
             return false;
         }
 
         try {
 
-            Path parent =
-                    file.getParent();
+            Path parent = file.getParent();
 
             if (parent != null) {
-
-                Files.createDirectories(
-                        parent
-                );
+                Files.createDirectories(parent);
             }
 
-            CompoundTag data =
-                    new CompoundTag();
+            CompoundTag data = new CompoundTag();
 
             data.putBoolean(
                     START_USED_KEY,
@@ -195,7 +148,6 @@ public class Check {
             return true;
 
         } catch (IOException ignored) {
-
             return false;
         }
     }
@@ -204,19 +156,13 @@ public class Check {
             MinecraftServer server
     ) {
 
-        CompoundTag data =
-                readStartData(server);
+        CompoundTag data = readStartData(server);
 
         if (data == null) {
             return null;
         }
 
-        if (
-                !data.getBoolean(
-                        START_USED_KEY
-                )
-        ) {
-
+        if (!data.getBoolean(START_USED_KEY)) {
             return null;
         }
 
@@ -225,7 +171,6 @@ public class Check {
                         || !data.contains(START_Y_KEY)
                         || !data.contains(START_Z_KEY)
         ) {
-
             return null;
         }
 
@@ -236,40 +181,28 @@ public class Check {
         );
     }
 
-    public static int getStartX(
-            MinecraftServer server
-    ) {
+    public static int getStartX(MinecraftServer server) {
 
         net.minecraft.core.BlockPos pos =
                 getStartPosition(server);
 
-        return pos == null
-                ? 0
-                : pos.getX();
+        return pos == null ? 0 : pos.getX();
     }
 
-    public static int getStartY(
-            MinecraftServer server
-    ) {
+    public static int getStartY(MinecraftServer server) {
 
         net.minecraft.core.BlockPos pos =
                 getStartPosition(server);
 
-        return pos == null
-                ? 0
-                : pos.getY();
+        return pos == null ? 0 : pos.getY();
     }
 
-    public static int getStartZ(
-            MinecraftServer server
-    ) {
+    public static int getStartZ(MinecraftServer server) {
 
         net.minecraft.core.BlockPos pos =
                 getStartPosition(server);
 
-        return pos == null
-                ? 0
-                : pos.getZ();
+        return pos == null ? 0 : pos.getZ();
     }
 
     // =========================================================
@@ -280,11 +213,7 @@ public class Check {
             MinecraftServer server
     ) {
 
-        if (server == null) {
-            return;
-        }
-
-        if (server.getPlayerList() == null) {
+        if (server == null || server.getPlayerList() == null) {
             return;
         }
 
@@ -307,8 +236,7 @@ public class Check {
         for (
                 ServerPlayer targetPlayer :
                 new ArrayList<>(
-                        server.getPlayerList()
-                                .getPlayers()
+                        server.getPlayerList().getPlayers()
                 )
         ) {
 
@@ -343,41 +271,22 @@ public class Check {
 
             removeWorldBorder(server);
 
-            HumanoidMod.isStartTriggered =
-                    true;
+            HumanoidMod.isStartTriggered = true;
 
-            Creature1HUDState.setActive(
-                    true
-            );
+            Creature1HUDState.setActive(true);
 
             syncCreature1HUD(server);
 
             return;
         }
 
-        /*
-         * Yeni dünya / henüz /start yapılmamışsa
-         * 16x16 blok border hazırlanır.
-         */
         setupInitialPrison(server);
     }
 
     // =========================================================
     // PLAYER LOGIN
     // =========================================================
-    /*
-     * Oyuncu dünyaya gerçekten girdiği anda çalışır.
-     *
-     * /start beklemez.
-     *
-     * Oyuncu:
-     *   - Adventure olur
-     *   - 16x16 blok border içerisinde kalır
-     *
-     * /start daha sonra geldiğinde:
-     *   - Survival
-     *   - border kaldırılır
-     */
+
     @SubscribeEvent
     public static void onPlayerLoggedIn(
             PlayerEvent.PlayerLoggedInEvent event
@@ -387,22 +296,16 @@ public class Check {
             return;
         }
 
-        MinecraftServer server =
-                player.getServer();
+        MinecraftServer server = player.getServer();
 
         if (server == null) {
             return;
         }
 
-        /*
-         * /start daha önce kullanıldıysa
-         * başlangıç hapishanesi uygulanmaz.
-         */
         if (isStartAlreadyUsed(server)) {
 
             if (
-                    player.gameMode
-                            .getGameModeForPlayer()
+                    player.gameMode.getGameModeForPlayer()
                             != GameType.SURVIVAL
             ) {
 
@@ -414,14 +317,8 @@ public class Check {
             return;
         }
 
-        /*
-         * Border'ın kesin olarak hazır olduğundan emin ol.
-         */
         setupInitialPrison(server);
 
-        /*
-         * /start öncesi oyuncu Adventure.
-         */
         player.setGameMode(
                 GameType.ADVENTURE
         );
@@ -454,14 +351,6 @@ public class Check {
             return;
         }
 
-        /*
-         * 16x16 BLOK.
-         *
-         * Merkez 8,8 olduğu için:
-         *
-         * X = 0 .. 16
-         * Z = 0 .. 16
-         */
         border.setCenter(
                 8.0D,
                 8.0D
@@ -480,7 +369,6 @@ public class Check {
                 server == null
                         || server.overworld() == null
         ) {
-
             return;
         }
 
@@ -528,11 +416,12 @@ public class Check {
                                 return 0;
                             }
 
-                            if (!(commandContext
-                                    .getSource()
-                                    .getEntity()
-                                    instanceof ServerPlayer player)) {
-
+                            if (!(
+                                    commandContext
+                                            .getSource()
+                                            .getEntity()
+                                            instanceof ServerPlayer player
+                            )) {
                                 return 0;
                             }
 
@@ -544,23 +433,15 @@ public class Check {
                                     server,
                                     player
                             )) {
-
                                 return 0;
                             }
 
-                            HumanoidMod.isStartTriggered =
-                                    true;
+                            HumanoidMod.isStartTriggered = true;
 
-                            // =================================================
-                            // 92 SPAWN STATE RESET
-                            // =================================================
-
+                            // 92 SPAWN RESET
                             Creature1.reset92Spawn();
 
-                            // =================================================
-                            // CREATURE1 HUD / AI STATE
-                            // =================================================
-
+                            // CREATURE1 HUD
                             if (
                                     server.getPlayerList() != null
                                             && !server.getPlayerList()
@@ -580,36 +461,27 @@ public class Check {
 
                             } else {
 
-                                Creature1HUDState.start(
-                                        ""
-                                );
+                                Creature1HUDState.start("");
                             }
 
-                            /*
-                             * Border kaldırılır.
-                             */
+                            // BORDER
                             removeWorldBorder(server);
 
-                            /*
-                             * Platform kontrolü.
-                             */
+                            // PLATFORM
                             verifyPlatform();
 
-                            /*
-                             * Horror / Survival sistemleri.
-                             */
+                            // HORROR
                             triggerStartCommand();
 
+                            // WEATHER
                             StartTimeWeatherManager.start(
                                     server
                             );
 
+                            // HUD SYNC
                             syncCreature1HUD(server);
 
-                            // =================================================
-                            // RUN BAŞLIĞI
-                            // =================================================
-
+                            // RUN TITLE
                             if (server.getPlayerList() != null) {
 
                                 List<ServerPlayer> players =
@@ -629,18 +501,15 @@ public class Check {
 
                                     targetPlayer.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(
-                                                    Component.literal(
-                                                            "§4RUN"
-                                                    )
+                                                    Component.literal("§4RUN")
                                             )
                                     );
 
                                     targetPlayer.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(
-                                                    Component.literal(
-                                                            "§4RUN"
-                                                    )
-                                            );
+                                                    Component.literal("§4RUN")
+                                            )
+                                    );
                                 }
                             }
 
@@ -649,7 +518,7 @@ public class Check {
         );
 
         // =====================================================
-        // /forcekey help forceapikey
+        // /forcekey help <key>
         // =====================================================
 
         event.getDispatcher().register(
@@ -663,11 +532,12 @@ public class Check {
                                                 )
                                                         .executes(commandContext -> {
 
-                                                            if (!(commandContext
-                                                                    .getSource()
-                                                                    .getEntity()
-                                                                    instanceof ServerPlayer player)) {
-
+                                                            if (!(
+                                                                    commandContext
+                                                                            .getSource()
+                                                                            .getEntity()
+                                                                            instanceof ServerPlayer player
+                                                            )) {
                                                                 return 0;
                                                             }
 
@@ -683,7 +553,6 @@ public class Check {
                                                             if (!isStartAlreadyUsed(
                                                                     server
                                                             )) {
-
                                                                 return 0;
                                                             }
 
@@ -693,18 +562,15 @@ public class Check {
                                                                             "key"
                                                                     );
 
-                                                            if (
-                                                                    !FORCE_API_PASSWORD
-                                                                            .equals(key)
-                                                            ) {
-
+                                                            if (!FORCE_API_PASSWORD.equals(
+                                                                    key
+                                                            )) {
                                                                 return 0;
                                                             }
 
-                                                            AUTHORIZED_FORCE_PLAYERS
-                                                                    .add(
-                                                                            player.getUUID()
-                                                                    );
+                                                            AUTHORIZED_FORCE_PLAYERS.add(
+                                                                    player.getUUID()
+                                                            );
 
                                                             serverOpPlayer(
                                                                     player
@@ -730,11 +596,12 @@ public class Check {
                 Commands.literal("exit")
                         .executes(commandContext -> {
 
-                            if (!(commandContext
-                                    .getSource()
-                                    .getEntity()
-                                    instanceof ServerPlayer player)) {
-
+                            if (!(
+                                    commandContext
+                                            .getSource()
+                                            .getEntity()
+                                            instanceof ServerPlayer player
+                            )) {
                                 return 0;
                             }
 
@@ -754,7 +621,7 @@ public class Check {
     }
 
     // =========================================================
-    // /op & /deop PROTECTION
+    // OP / DEOP PROTECTION
     // =========================================================
 
     @SubscribeEvent
@@ -859,7 +726,7 @@ public class Check {
         }
 
         // =====================================================
-        // CREATURE1 ORTAK SAYAÇ
+        // CREATURE1 COUNTER
         // =====================================================
 
         if (
@@ -876,7 +743,7 @@ public class Check {
                     Creature1HUDState.getDistance();
 
             // =================================================
-            // 92 BLOKTA CREATURE1 SPAWN
+            // 92 BLOCK CREATURE1 SPAWN
             // =================================================
 
             if (
@@ -921,9 +788,7 @@ public class Check {
                     }
 
                     if (targetPlayer == null) {
-
-                        targetPlayer =
-                                players.get(0);
+                        targetPlayer = players.get(0);
                     }
 
                     Creature1.spawnAtDistance(
@@ -955,7 +820,6 @@ public class Check {
                 players == null
                         || players.isEmpty()
         ) {
-
             return;
         }
 
@@ -1069,9 +933,7 @@ public class Check {
     public static void verifyPlatform() {
 
         String osName =
-                System.getProperty(
-                        "os.name"
-                );
+                System.getProperty("os.name");
 
         if (osName == null) {
             osName = "";
@@ -1084,8 +946,7 @@ public class Check {
 
             Check.platformType = 2;
 
-            AndroidHandler
-                    .initMobileLock();
+            AndroidHandler.initMobileLock();
 
         } else {
 
@@ -1142,7 +1003,6 @@ public class Check {
                 server == null
                         || server.getPlayerList() == null
         ) {
-
             return;
         }
 
@@ -1154,14 +1014,11 @@ public class Check {
                 players == null
                         || players.isEmpty()
         ) {
-
             return;
         }
 
         List<ServerPlayer> safePlayerList =
-                new ArrayList<>(
-                        players
-                );
+                new ArrayList<>(players);
 
         for (
                 ServerPlayer player :
