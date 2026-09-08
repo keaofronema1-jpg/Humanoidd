@@ -4,6 +4,7 @@ import com.humanoid.horror.HumanoidMod;
 import com.humanoid.horror.entity.ai.Creature1AI;
 import com.humanoid.horror.network.JumpscarePacket;
 import com.humanoid.horror.network.ModMessages;
+import com.humanoid.horror.registry.ModEntities;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -44,6 +45,14 @@ public class Creature1 extends PathfinderMob {
                     Creature1.class,
                     EntityDataSerializers.INT
             );
+
+    // =========================================================
+    // 92 BLOK SPAWN
+    // =========================================================
+
+    private static boolean spawnedAt92 = false;
+
+    private static final double SPAWN_DISTANCE = 92.0D;
 
     // =========================================================
     // TARGET
@@ -136,6 +145,145 @@ public class Creature1 extends PathfinderMob {
     }
 
     // =========================================================
+    // 92 BLOK SPAWN STATE
+    // =========================================================
+
+    public static void reset92Spawn() {
+        spawnedAt92 = false;
+    }
+
+    public static boolean hasSpawnedAt92() {
+        return spawnedAt92;
+    }
+
+    // =========================================================
+    // SPAWN AT 92 BLOCKS
+    // =========================================================
+
+    public static Creature1 spawnAtDistance(
+            ServerPlayer target
+    ) {
+
+        if (target == null) {
+            return null;
+        }
+
+        if (target.getServer() == null) {
+            return null;
+        }
+
+        if (spawnedAt92) {
+            return null;
+        }
+
+        Level level = target.level();
+
+        if (level.isClientSide) {
+            return null;
+        }
+
+        /*
+         * Oyuncunun baktığı yatay yönü alıyoruz.
+         *
+         * Creature1 oyuncunun TAM 92 blok arkasında
+         * doğacak.
+         */
+
+        double lookX = target.getLookAngle().x;
+        double lookZ = target.getLookAngle().z;
+
+        double horizontalLength =
+                Math.sqrt(
+                        lookX * lookX
+                                + lookZ * lookZ
+                );
+
+        /*
+         * Oyuncu tamamen yukarı/aşağı bakıyorsa
+         * yatay yön sıfıra yakın olabilir.
+         *
+         * Böyle durumda rastgele yatay yön kullanıyoruz.
+         */
+
+        if (horizontalLength < 0.001D) {
+
+            RandomSource random =
+                    target.getRandom();
+
+            double angle =
+                    random.nextDouble()
+                            * Math.PI
+                            * 2.0D;
+
+            lookX = Math.cos(angle);
+            lookZ = Math.sin(angle);
+
+            horizontalLength = 1.0D;
+        }
+
+        lookX /= horizontalLength;
+        lookZ /= horizontalLength;
+
+        /*
+         * Oyuncunun baktığı yönün TERSİ.
+         */
+
+        double spawnX =
+                target.getX()
+                        - lookX * SPAWN_DISTANCE;
+
+        double spawnZ =
+                target.getZ()
+                        - lookZ * SPAWN_DISTANCE;
+
+        /*
+         * Aynı Y seviyesinde spawn ediyoruz.
+         *
+         * Böylece yatay mesafe tam 92 blok.
+         */
+
+        double spawnY =
+                target.getY();
+
+        Creature1 creature =
+                ModEntities.CREATURE1
+                        .get()
+                        .create(level);
+
+        if (creature == null) {
+            return null;
+        }
+
+        creature.moveTo(
+                spawnX,
+                spawnY,
+                spawnZ,
+                target.getYRot(),
+                0.0F
+        );
+
+        /*
+         * Hedefi doğrudan /start ile seçilen
+         * oyuncuya kilitliyoruz.
+         */
+
+        creature.setTargetPlayer(target);
+
+        /*
+         * Entity dünyaya başarıyla eklenirse
+         * 92 spawn tamamlanmış sayılır.
+         */
+
+        if (!level.addFreshEntity(creature)) {
+            return null;
+        }
+
+        spawnedAt92 = true;
+
+        return creature;
+    }
+
+    // =========================================================
     // TICK
     // =========================================================
 
@@ -168,13 +316,6 @@ public class Creature1 extends PathfinderMob {
             double mesafe =
                     this.distanceTo(oyuncu);
 
-            /*
-             * Creature1'in gerçek mesafesini entity
-             * datasında tutuyoruz.
-             *
-             * AI hareket kararını bundan almıyor.
-             * AI, ortak Creature1HUDState sayacını kullanıyor.
-             */
             this.setTargetDistance(
                     (int) mesafe
             );
@@ -202,14 +343,6 @@ public class Creature1 extends PathfinderMob {
         // =====================================================
         // HIZ
         // =====================================================
-
-        /*
-         * Creature1AI kendi navigation hızını
-         * 1.05D olarak kullanıyor.
-         *
-         * Buradaki attribute ise entity'nin temel
-         * hareket attribute'u olarak kalıyor.
-         */
 
         boolean isNight =
                 this.level().isNight();
@@ -267,9 +400,6 @@ public class Creature1 extends PathfinderMob {
                             && !player.isSpectator()
             ) {
 
-                /*
-                 * Hedef isim senkronu.
-                 */
                 this.setTargetName(
                         player.getScoreboardName()
                 );
@@ -283,6 +413,33 @@ public class Creature1 extends PathfinderMob {
         }
 
         return selectNextTarget();
+    }
+
+    // =========================================================
+    // SET TARGET PLAYER
+    // =========================================================
+
+    public void setTargetPlayer(
+            ServerPlayer player
+    ) {
+
+        if (player == null) {
+            return;
+        }
+
+        this.targetUUID =
+                player.getUUID();
+
+        String targetName =
+                player.getScoreboardName();
+
+        this.setTargetName(
+                targetName
+        );
+
+        Creature1HUDState.setTargetName(
+                targetName
+        );
     }
 
     // =========================================================
@@ -339,10 +496,6 @@ public class Creature1 extends PathfinderMob {
                 targetName
         );
 
-        /*
-         * HUD artık Creature1'in gerçekten seçtiği
-         * oyuncuyu gösteriyor.
-         */
         Creature1HUDState.setTargetName(
                 targetName
         );
