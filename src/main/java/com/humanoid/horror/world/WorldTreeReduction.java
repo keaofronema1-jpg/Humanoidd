@@ -11,23 +11,19 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.TreeFeature;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraftforge.event.level.BiomeLoadingEvent;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.structure.templatesystem.StructureTemplate;
+
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Supplier;
 
 @Mod.EventBusSubscriber(
         modid = HumanoidMod.MOD_ID,
@@ -42,13 +38,16 @@ public final class WorldTreeReduction {
             );
 
     /*
-     * 30 saniyede bir yeni humanoidtree denemesi.
+     * 30 saniyede bir ağaç oluşturma denemesi.
      */
     private static final int SPAWN_INTERVAL = 600;
 
     /*
-     * Rastgele alan:
-     * oyuncudan -1000 / +1000 X-Z.
+     * Rastgele X/Z mesafesi.
+     *
+     * Oyuncunun:
+     * -1000 / +1000
+     * blok çevresinde.
      */
     private static final int RANDOM_DISTANCE = 1000;
 
@@ -61,100 +60,6 @@ public final class WorldTreeReduction {
     private static int tickCounter = 0;
 
     private WorldTreeReduction() {
-    }
-
-    // =========================================================
-    // VANILLA AĞAÇLARINI ENGELLE
-    // =========================================================
-
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onBiomeLoading(
-            BiomeLoadingEvent event
-    ) {
-
-        List<Supplier<ConfiguredFeature<?, ?>>> features =
-                event.getGeneration()
-                        .getFeatures(
-                                GenerationStep.Decoration.VEGETAL_DECORATION
-                        );
-
-        /*
-         * Vanilla tree feature'larını tamamen kaldır.
-         *
-         * Bu sadece world generation feature'larını etkiler.
-         * Oyuncunun sonradan diktiği ağaçlara dokunmaz.
-         */
-        features.removeIf(
-                WorldTreeReduction::isTreeFeature
-        );
-    }
-
-    private static boolean isTreeFeature(
-            Supplier<ConfiguredFeature<?, ?>> supplier
-    ) {
-
-        if (supplier == null) {
-            return false;
-        }
-
-        try {
-
-            ConfiguredFeature<?, ?> feature =
-                    supplier.get();
-
-            if (feature == null) {
-                return false;
-            }
-
-            Feature<?> type =
-                    feature.feature();
-
-            /*
-             * Direkt TreeFeature.
-             */
-            if (type instanceof TreeFeature) {
-                return true;
-            }
-
-            /*
-             * Decorated / wrapped feature.
-             */
-            return feature.getFeatures()
-                    .anyMatch(
-                            WorldTreeReduction::isTreeFeature
-                    );
-
-        } catch (Exception ignored) {
-
-            return false;
-        }
-    }
-
-    private static boolean isTreeFeature(
-            ConfiguredFeature<?, ?> feature
-    ) {
-
-        if (feature == null) {
-            return false;
-        }
-
-        try {
-
-            if (feature.feature()
-                    instanceof TreeFeature) {
-
-                return true;
-            }
-
-            return feature.getFeatures()
-                    .anyMatch(
-                            WorldTreeReduction::isTreeFeature
-                    );
-
-        } catch (Exception ignored) {
-
-            return false;
-        }
     }
 
     // =========================================================
@@ -178,7 +83,7 @@ public final class WorldTreeReduction {
         }
 
         /*
-         * /start yapılmadan sistem çalışmaz.
+         * /start yapılmadan çalışma.
          */
         if (!HumanoidMod.isStartTriggered) {
             return;
@@ -211,7 +116,9 @@ public final class WorldTreeReduction {
          */
         ServerPlayer player =
                 players.get(
-                        RANDOM.nextInt(players.size())
+                        RANDOM.nextInt(
+                                players.size()
+                        )
                 );
 
         spawnRandomTree(
@@ -221,7 +128,7 @@ public final class WorldTreeReduction {
     }
 
     // =========================================================
-    // RASTGELE AĞAÇ
+    // RASTGELE HUMANOID TREE
     // =========================================================
 
     private static void spawnRandomTree(
@@ -238,6 +145,9 @@ public final class WorldTreeReduction {
         int playerZ =
                 player.blockPosition().getZ();
 
+        /*
+         * Tamamen rastgele X/Z.
+         */
         int randomX =
                 playerX
                         + RANDOM.nextInt(
@@ -252,19 +162,23 @@ public final class WorldTreeReduction {
                         )
                         - RANDOM_DISTANCE;
 
-        /*
-         * Chunk yüklü değilse o denemeyi atla.
-         */
-        if (!level.hasChunkAt(
+        BlockPos checkPos =
                 new BlockPos(
                         randomX,
                         level.getMinBuildHeight(),
                         randomZ
-                )
-        )) {
+                );
+
+        /*
+         * Chunk yüklü değilse bu denemeyi atla.
+         */
+        if (!level.hasChunkAt(checkPos)) {
             return;
         }
 
+        /*
+         * Dünya yüzeyini bul.
+         */
         int surfaceY =
                 level.getHeight(
                         Heightmap.Types.WORLD_SURFACE,
@@ -283,7 +197,7 @@ public final class WorldTreeReduction {
                 groundPos.above();
 
         /*
-         * Uygun zemin değilse oluşturma.
+         * Sadece uygun zemin.
          */
         if (!isSuitableGround(
                 level,
@@ -293,22 +207,22 @@ public final class WorldTreeReduction {
         }
 
         /*
-         * Ağacın başlangıç noktası doluysa oluşturma.
+         * Başlangıç noktası boş olmalı.
          */
         if (!level.isEmptyBlock(treePos)) {
             return;
         }
 
         /*
-         * Aynı konuma daha önce bizim ağacımız
-         * konduysa tekrar koyma.
+         * Aynı noktaya daha önce ağaç koyulduysa
+         * tekrar koyma.
          */
         if (data.hasTreeAt(treePos)) {
             return;
         }
 
         /*
-         * NBT ağacını yerleştir.
+         * NBT'yi yerleştir.
          */
         if (placeTree(
                 level,
@@ -321,7 +235,7 @@ public final class WorldTreeReduction {
     }
 
     // =========================================================
-    // ZEMİN
+    // ZEMİN KONTROLÜ
     // =========================================================
 
     private static boolean isSuitableGround(
@@ -357,7 +271,7 @@ public final class WorldTreeReduction {
     }
 
     // =========================================================
-    // NBT TREE
+    // NBT YERLEŞTİRME
     // =========================================================
 
     private static boolean placeTree(
@@ -385,14 +299,16 @@ public final class WorldTreeReduction {
                     new StructurePlaceSettings();
 
             settings.setRotation(
-                    net.minecraft.world.level.block.Rotation.NONE
+                    Rotation.NONE
             );
 
             settings.setMirror(
-                    net.minecraft.world.level.block.Mirror.NONE
+                    Mirror.NONE
             );
 
-            settings.setIgnoreEntities(false);
+            settings.setIgnoreEntities(
+                    false
+            );
 
             return template.placeInWorld(
                     level,
@@ -453,14 +369,13 @@ public final class WorldTreeReduction {
                     CompoundTag tree =
                             list.getCompound(i);
 
-                    BlockPos pos =
+                    data.trees.add(
                             new BlockPos(
                                     tree.getInt("X"),
                                     tree.getInt("Y"),
                                     tree.getInt("Z")
-                            );
-
-                    data.trees.add(pos);
+                            )
+                    );
                 }
             }
 
