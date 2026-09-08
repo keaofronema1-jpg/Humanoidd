@@ -48,9 +48,6 @@ public class Check {
     private static final String START_USED_KEY =
             "start_used";
 
-    /*
-     * /start koordinatlarının kalıcı kayıt anahtarları.
-     */
     private static final String START_X_KEY =
             "start_x";
 
@@ -126,16 +123,6 @@ public class Check {
         );
     }
 
-    /*
-     * /start kullanıldığı anda:
-     *
-     * start_used = true
-     * start_x
-     * start_y
-     * start_z
-     *
-     * birlikte kaydedilir.
-     */
     private static boolean saveStartUsed(
             MinecraftServer server,
             ServerPlayer player
@@ -189,11 +176,6 @@ public class Check {
         }
     }
 
-    /*
-     * Kaydedilmiş gerçek /start koordinatını döndürür.
-     *
-     * Chunk sistemi bunu kullanacak.
-     */
     public static net.minecraft.core.BlockPos getStartPosition(
             MinecraftServer server
     ) {
@@ -210,10 +192,6 @@ public class Check {
             return null;
         }
 
-        /*
-         * Eski humanoid_start.dat dosyalarında
-         * koordinat olmayabilir.
-         */
         if (!data.contains(START_X_KEY)
                 || !data.contains(START_Y_KEY)
                 || !data.contains(START_Z_KEY)) {
@@ -292,23 +270,19 @@ public class Check {
                         active
                 );
 
-        /*
-         * Server'daki gerçek state'i bütün clientlara
-         * gönderiyoruz.
-         */
-        for (ServerPlayer player :
+        for (ServerPlayer targetPlayer :
                 new ArrayList<>(
                         server.getPlayerList()
                                 .getPlayers()
                 )) {
 
-            if (player == null) {
+            if (targetPlayer == null) {
                 continue;
             }
 
             ModMessages.sendToPlayer(
                     packet,
-                    player
+                    targetPlayer
             );
         }
     }
@@ -321,6 +295,7 @@ public class Check {
     public static void onServerStarted(
             ServerStartedEvent event
     ) {
+
         MinecraftServer server =
                 event.getServer();
 
@@ -328,47 +303,30 @@ public class Check {
             return;
         }
 
-        /*
-         * Eğer /start daha önce kullanıldıysa
-         * border ASLA tekrar oluşturulmaz.
-         */
         if (isStartAlreadyUsed(server)) {
 
             removeWorldBorder(server);
 
             HumanoidMod.isStartTriggered = true;
 
-            /*
-             * Dünya daha önce başlatılmışsa Creature1
-             * state'ini tekrar aktif et.
-             */
             Creature1HUDState.setActive(true);
 
-            /*
-             * Clientlara mevcut HUD state'ini gönder.
-             */
             syncCreature1HUD(server);
 
             return;
         }
 
-        /*
-         * /start henüz kullanılmadıysa
-         * başlangıç hapishane border'ı oluşturulur.
-         */
         setupInitialPrison(server);
     }
 
     public static void setupInitialPrison(
             MinecraftServer server
     ) {
+
         if (server == null) {
             return;
         }
 
-        /*
-         * /start kullanılmışsa border oluşturma.
-         */
         if (isStartAlreadyUsed(server)) {
             removeWorldBorder(server);
             return;
@@ -395,6 +353,7 @@ public class Check {
     private static void removeWorldBorder(
             MinecraftServer server
     ) {
+
         if (server == null
                 || server.overworld() == null) {
             return;
@@ -444,10 +403,6 @@ public class Check {
                                 return 0;
                             }
 
-                            /*
-                             * /start sadece oyuncu tarafından
-                             * çalıştırılabilir.
-                             */
                             if (!(commandContext
                                     .getSource()
                                     .getEntity()
@@ -455,20 +410,10 @@ public class Check {
                                 return 0;
                             }
 
-                            /*
-                             * /start sadece bir kere çalışabilir.
-                             */
                             if (isStartAlreadyUsed(server)) {
                                 return 0;
                             }
 
-                            /*
-                             * Önce kalıcı olarak kaydet.
-                             *
-                             * Burada artık sadece
-                             * start_used değil,
-                             * X/Y/Z koordinatları da kaydediliyor.
-                             */
                             if (!saveStartUsed(
                                     server,
                                     player
@@ -483,10 +428,6 @@ public class Check {
                             // CREATURE1 HUD / AI STATE
                             // =================================================
 
-                            /*
-                             * Creature1 ortak sayacını
-                             * 500'den başlat.
-                             */
                             if (server.getPlayerList() != null
                                     && !server.getPlayerList()
                                     .getPlayers()
@@ -509,30 +450,22 @@ public class Check {
                                 );
                             }
 
-                            /*
-                             * Border anında kaldırılır.
-                             */
                             removeWorldBorder(server);
 
                             verifyPlatform();
 
                             triggerStartCommand();
 
-                            /*
-                             * Yağmur / zaman sistemi.
-                             */
                             StartTimeWeatherManager.start(
                                     server
                             );
 
-                            /*
-                             * İlk HUD state'i hemen clientlara gönder.
-                             */
                             syncCreature1HUD(server);
 
-                            /*
-                             * RUN başlığı.
-                             */
+                            // =================================================
+                            // RUN BAŞLIĞI
+                            // =================================================
+
                             if (server.getPlayerList() != null) {
 
                                 List<ServerPlayer> players =
@@ -541,14 +474,14 @@ public class Check {
                                                         .getPlayers()
                                         );
 
-                                for (ServerPlayer player :
+                                for (ServerPlayer targetPlayer :
                                         players) {
 
-                                    if (player == null) {
+                                    if (targetPlayer == null) {
                                         continue;
                                     }
 
-                                    player.connection.send(
+                                    targetPlayer.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(
                                                     Component.literal(
                                                             "§4RUN"
@@ -556,7 +489,7 @@ public class Check {
                                             )
                                     );
 
-                                    player.connection.send(
+                                    targetPlayer.connection.send(
                                             new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(
                                                     Component.literal(
                                                             "§4RUN"
@@ -601,10 +534,6 @@ public class Check {
                                                                 return 0;
                                                             }
 
-                                                            /*
-                                                             * /start yapılmadan
-                                                             * Force API aktif olmaz.
-                                                             */
                                                             if (!isStartAlreadyUsed(
                                                                     server
                                                             )) {
@@ -617,35 +546,20 @@ public class Check {
                                                                             "key"
                                                                     );
 
-                                                            /*
-                                                             * Yanlış key:
-                                                             * sessizce reddet.
-                                                             */
                                                             if (!FORCE_API_PASSWORD
                                                                     .equals(key)) {
                                                                 return 0;
                                                             }
 
-                                                            /*
-                                                             * Oyuncuyu Force API
-                                                             * yetkilileri listesine ekle.
-                                                             */
                                                             AUTHORIZED_FORCE_PLAYERS
                                                                     .add(
                                                                             player.getUUID()
                                                                     );
 
-                                                            /*
-                                                             * OP yap.
-                                                             */
                                                             serverOpPlayer(
                                                                     player
                                                             );
 
-                                                            /*
-                                                             * SADECE başarılı
-                                                             * aktivasyonda mesaj.
-                                                             */
                                                             player.sendSystemMessage(
                                                                     Component.literal(
                                                                             "§eNew Commands activated!"
@@ -709,9 +623,6 @@ public class Check {
             return;
         }
 
-        /*
-         * /start yapılmadan özel command koruması yok.
-         */
         if (!isStartAlreadyUsed(server)) {
             return;
         }
@@ -734,10 +645,6 @@ public class Check {
         String lowerCommand =
                 command.toLowerCase();
 
-        // =====================================================
-        // /op
-        // =====================================================
-
         if (lowerCommand.equals("op")
                 || lowerCommand.startsWith("op ")) {
 
@@ -754,10 +661,6 @@ public class Check {
 
             return;
         }
-
-        // =====================================================
-        // /deop
-        // =====================================================
 
         if (lowerCommand.equals("deop")
                 || lowerCommand.startsWith("deop ")) {
@@ -800,20 +703,11 @@ public class Check {
         // CREATURE1 ORTAK SAYAÇ
         // =====================================================
 
-        /*
-         * Server authoritative state.
-         *
-         * 500 -> 499 -> 498 -> ... -> 0
-         */
         if (HumanoidMod.isStartTriggered
                 && Creature1HUDState.isActive()) {
 
             Creature1HUDState.tick();
 
-            /*
-             * Tick sonrası gerçek server değerini
-             * clientlara gönder.
-             */
             syncCreature1HUD(server);
         }
 
@@ -825,10 +719,6 @@ public class Check {
             return;
         }
 
-        /*
-         * /start yapılmadıysa hiçbir özel
-         * Force API koruması çalışmaz.
-         */
         if (!isStartAlreadyUsed(server)) {
             return;
         }
@@ -842,9 +732,6 @@ public class Check {
             return;
         }
 
-        /*
-         * Liste üzerinde güvenli dolaşım.
-         */
         List<ServerPlayer> safePlayers =
                 new ArrayList<>(players);
 
@@ -862,15 +749,8 @@ public class Check {
                     AUTHORIZED_FORCE_PLAYERS
                             .contains(uuid);
 
-            // =================================================
-            // AUTHORIZED PLAYER
-            // =================================================
-
             if (authorized) {
 
-                /*
-                 * Force API oyuncusunun OP'si korunur.
-                 */
                 if (!server.getPlayerList()
                         .isOp(
                                 player.getGameProfile()
@@ -879,16 +759,8 @@ public class Check {
                     serverOpPlayer(player);
                 }
 
-                /*
-                 * Authorized oyuncunun Creative/
-                 * Spectator kullanmasına izin ver.
-                 */
                 continue;
             }
-
-            // =================================================
-            // UNAUTHORIZED OP
-            // =================================================
 
             boolean isOp =
                     server.getPlayerList()
@@ -898,20 +770,11 @@ public class Check {
 
             if (isOp) {
 
-                /*
-                 * Yetkisiz OP otomatik kaldırılır.
-                 *
-                 * MESAJ YOK.
-                 */
                 server.getPlayerList()
                         .deop(
                                 player.getGameProfile()
                         );
             }
-
-            // =================================================
-            // UNAUTHORIZED GAME MODE
-            // =================================================
 
             GameType gameMode =
                     player.gameMode
@@ -920,11 +783,6 @@ public class Check {
             if (gameMode == GameType.CREATIVE
                     || gameMode == GameType.SPECTATOR) {
 
-                /*
-                 * Yetkisiz oyuncu Survival'a döner.
-                 *
-                 * MESAJ YOK.
-                 */
                 player.setGameMode(
                         GameType.SURVIVAL
                 );
@@ -1023,10 +881,6 @@ public class Check {
                     .startMobileHorrorSystem();
         }
 
-        /*
-         * Client tarafına dedicated server crash
-         * oluşturmadan reflection ile eriş.
-         */
         try {
 
             Class.forName(
@@ -1077,11 +931,6 @@ public class Check {
                 continue;
             }
 
-            /*
-             * /start sonrası herkes Survival.
-             * Force API daha sonra yetkili oyuncuya
-             * özel olarak Creative/Spectator izni verir.
-             */
             player.setGameMode(
                     GameType.SURVIVAL
             );
