@@ -1,0 +1,6 @@
+{
+  "type": "forge:removefeatures",
+  "biomes": "minecraft:plains",
+  "features": "#humanoid:no_natural_trees",
+  "steps": "vegetal_decoration"
+}
