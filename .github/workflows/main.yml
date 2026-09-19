@@ -1,35 +1,173 @@
-name: TheLostPlace
+from pathlib import Path
+import os
 
-on:
-  workflow_dispatch:
+ROOT = Path(".")
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+REPLACEMENTS = [
+    ("HUMANOIDD", "SATANSPROJECTD"),
+    ("HUMANOID", "SATANSPROJECT"),
+    ("Humanoidd", "SatansProjectd"),
+    ("Humanoid", "SatansProject"),
+    ("humanoidd", "satansprojectd"),
+    ("humanoid", "satansproject"),
+    ("horror", "sadsatan"),
+]
 
-    steps:
-      - name: Download Cods
-        uses: actions/checkout@v4
+# GitHub/Gradle tarafından yönetilen veya kesinlikle dokunulmaması gereken klasörler
+SKIP_DIRS = {
+    ".git",
+    ".gradle",
+    "build",
+}
 
-      - name: Set Up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+# İçeriği metin olarak değiştirilmesi gereken uzantılar
+TEXT_EXTENSIONS = {
+    ".java",
+    ".json",
+    ".toml",
+    ".gradle",
+    ".properties",
+    ".xml",
+    ".mcmeta",
+    ".txt",
+    ".md",
+    ".yml",
+    ".yaml",
+    ".cfg",
+    ".conf",
+    ".js",
+    ".css",
+    ".html",
+}
 
-      - name: Permission Give Gradle
-        run: chmod +x gradlew
+def replace_text(text):
+    for old, new in REPLACEMENTS:
+        text = text.replace(old, new)
+    return text
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: wrapper
 
-      - name: Compile Project
-        run: ./gradlew build
+def should_skip(path):
+    return any(part in SKIP_DIRS for part in path.parts)
 
-      - name: Download The Compiled Project
-        uses: actions/upload-artifact@v4
-        with:
-          name: TheLostPlace-Jar
-          path: build/libs/*.jar
+
+print("========================================")
+print(" SATANSPROJECT - FULL RENAME")
+print("========================================")
+print()
+
+# --------------------------------------------------
+# 1. DOSYA İÇERİKLERİNİ DEĞİŞTİR
+# --------------------------------------------------
+
+changed_files = 0
+
+for path in ROOT.rglob("*"):
+
+    if not path.is_file():
+        continue
+
+    if should_skip(path):
+        continue
+
+    # Sadece güvenli metin dosyalarını değiştir
+    if path.suffix.lower() not in TEXT_EXTENSIONS:
+        continue
+
+    try:
+        data = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        continue
+
+    new_data = replace_text(data)
+
+    if new_data != data:
+        path.write_text(new_data, encoding="utf-8")
+        changed_files += 1
+        print(f"[CONTENT] {path}")
+
+print()
+print(f"Değiştirilen içerik dosyası: {changed_files}")
+print()
+
+# --------------------------------------------------
+# 2. DOSYA VE KLASÖR İSİMLERİNİ DEĞİŞTİR
+# --------------------------------------------------
+
+renamed_items = 0
+
+# En derinden başlayarak rename yap
+all_paths = sorted(
+    [p for p in ROOT.rglob("*") if not should_skip(p)],
+    key=lambda p: len(p.parts),
+    reverse=True
+)
+
+for path in all_paths:
+
+    old_name = path.name
+    new_name = replace_text(old_name)
+
+    if old_name == new_name:
+        continue
+
+    new_path = path.with_name(new_name)
+
+    if new_path.exists():
+        print(f"[SKIP] Hedef zaten var: {new_path}")
+        continue
+
+    try:
+        path.rename(new_path)
+        renamed_items += 1
+        print(f"[RENAME] {path} -> {new_path}")
+    except OSError as e:
+        print(f"[ERROR] {path}: {e}")
+
+print()
+print(f"Yeniden adlandırılan dosya/klasör: {renamed_items}")
+print()
+
+# --------------------------------------------------
+# 3. SON KONTROL
+# --------------------------------------------------
+
+print("========================================")
+print(" SON KONTROL")
+print("========================================")
+
+remaining = []
+
+for path in ROOT.rglob("*"):
+
+    if should_skip(path):
+        continue
+
+    path_string = str(path)
+
+    for old, new in REPLACEMENTS:
+        if old in path_string:
+            remaining.append((path_string, old, new))
+
+        if path.is_file() and path.suffix.lower() in TEXT_EXTENSIONS:
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+
+            if old in text:
+                remaining.append((f"{path} [CONTENT]", old, new))
+
+if remaining:
+    print()
+    print("UYARI: Hâlâ eski isim bulunan yerler:")
+    for item in remaining:
+        print(f"  {item[0]} -> {item[1]}")
+
+else:
+    print()
+    print("TAMAM: Eski isimlerden hiçbirisi bulunamadı.")
+
+print()
+print("========================================")
+print(" RENAME İŞLEMİ TAMAMLANDI")
+print("========================================")
